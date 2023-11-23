@@ -1,0 +1,11 @@
+[package]
+name = "guardian-backup-application"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+guardian-backup-domain = {path = "../guardian-backup-domain"}
+
+log = "0.4"

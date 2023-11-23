@@ -1,0 +1,8 @@
+[workspace]
+
+members = [
+    "guardian-backup-application",
+    "guardian-backup-domain",
+    "guardian-backup-plugin-client",
+    "guardian-backup-plugin-server",
+]
