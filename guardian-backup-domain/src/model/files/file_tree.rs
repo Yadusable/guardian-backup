@@ -1,21 +1,22 @@
+use crate::model::blobs::blob_identifier::BlobIdentifier;
+use crate::model::files::directory_metadata::DirectoryMetadata;
+use crate::model::files::file_metadata::FileMetadata;
 use std::ffi::OsString;
-use crate::model::blob::Blob;
-use crate::model::directory_metadata::DirectoryMetadata;
-use crate::model::file_metadata::FileMetadata;
 
+#[derive(Debug)]
 pub enum FileTreeNode {
     File {
         name: OsString,
-        blob: Blob,
+        blob: BlobIdentifier,
         metadata: FileMetadata,
     },
     Directories {
         name: OsString,
         metadata: DirectoryMetadata,
-        children: Vec<FileTreeNode>
+        children: Vec<FileTreeNode>,
     },
     SymbolicLink {
         name: OsString,
         target: Box<FileTreeNode>,
-    }
+    },
 }
