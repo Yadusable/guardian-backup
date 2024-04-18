@@ -3,6 +3,7 @@ use std::collections::HashMap;
 use std::convert::Infallible;
 use std::fmt::Error;
 use std::ops::Deref;
+use std::sync::Arc;
 use guardian_backup_domain::model::blobs::blob_builder::BlobBuilder;
 use guardian_backup_domain::model::blobs::blob_creation_hint::BlobCreationHint;
 use guardian_backup_domain::model::blobs::blob_fetch::BlobFetch;
@@ -14,11 +15,11 @@ use crate::model::hash_service::{HashService, PendingHash};
 use crate::model::mocks::mock_hash_service::{MockHashService, MockPendingHash};
 
 pub struct InMemoryBlobRepository {
-    blobs: HashMap<BlobIdentifier, Box<[u8]>>
+    blobs: HashMap<BlobIdentifier, Arc<[u8]>>
 }
 
 impl BlobRepository for InMemoryBlobRepository {
-    type Error = Infallible;
+    type Error = BlobRepositoryError;
     type Builder = InMemoryBlobBuilder<MockPendingHash>;
     type BlobFetch = InMemoryBlobFetch;
 
@@ -36,17 +37,24 @@ impl BlobRepository for InMemoryBlobRepository {
         Ok(blob_identifier)
     }
 
-    async fn delete_blob(&mut self, user: &UserIdentifier, blob: &BlobIdentifier) -> Result<(), Self::Error> {
-        todo!()
+    async fn delete_blob(&mut self, blob: &BlobIdentifier) -> Result<(), Self::Error> {
+        self.blobs.remove(blob).ok_or(BlobRepositoryError::BlobNotFound).map(|e| ())
     }
 
-    fn fetch_blob(&self, user: &UserIdentifier, blob: &BlobIdentifier) -> Result<Self::BlobFetch, Self::Error> {
-        todo!()
+    fn fetch_blob(&self, blob: &BlobIdentifier) -> Result<Self::BlobFetch, Self::Error> {
+        Ok(InMemoryBlobFetch {
+            data: self.blobs.get(blob).ok_or(BlobRepositoryError::BlobNotFound)?.clone(),
+            cursor: 0,
+        })
     }
 }
 
+pub enum BlobRepositoryError {
+    BlobNotFound,
+}
+
 pub struct InMemoryBlobFetch {
-    data: Box<[u8]>,
+    data: Arc<[u8]>,
     cursor: usize,
 }
 
@@ -58,10 +66,6 @@ impl BlobFetch for InMemoryBlobFetch {
         buf.copy_from_slice(self.data.deref().split_at(self.cursor).1.split_at(to_read).0);
         self.cursor += to_read;
         Ok(to_read)
-    }
-
-    async fn read_to_eof(self) -> Result<Box<[u8]>, Self::Error> {
-        Ok(self.data)
     }
 }
 

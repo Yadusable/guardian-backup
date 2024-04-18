@@ -12,6 +12,6 @@ pub trait BlobRepository {
     async fn start_create_blob(&self, user: &UserIdentifier, hint: &BlobCreationHint) -> Result<Self::Builder, Self::Error>;
     async fn finalize_blob(&mut self, builder: Self::Builder) -> Result<BlobIdentifier, Self::Error>;
 
-    async fn delete_blob(&mut self, user: &UserIdentifier, blob: &BlobIdentifier) -> Result<(), Self::Error>;
-    fn fetch_blob(&self, user: &UserIdentifier, blob: &BlobIdentifier) -> Result<Self::BlobFetch, Self::Error>;
+    async fn delete_blob(&mut self, blob: &BlobIdentifier) -> Result<(), Self::Error>;
+    fn fetch_blob(&self, blob: &BlobIdentifier) -> Result<Self::BlobFetch, Self::Error>;
 }
