@@ -1,8 +1,10 @@
+use std::time::UNIX_EPOCH;
+use serde::{Deserialize, Serialize};
 use crate::model::backup::schedule_rule::ScheduleRule;
 use crate::model::error::{GuardianError, Result};
 use crate::model::timestamp::Timestamp;
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Schedule {
     rules: Vec<ScheduleRule>,
     last_execution: Timestamp,
@@ -41,5 +43,11 @@ impl Schedule {
 
     pub fn set_last_execution(&mut self, last_execution: Timestamp) {
         self.last_execution = last_execution;
+    }
+}
+
+impl Default for Schedule {
+    fn default() -> Self {
+        Self::new(vec![], Timestamp::from_milliseconds(UNIX_EPOCH.elapsed().unwrap().as_millis() as u64))
     }
 }

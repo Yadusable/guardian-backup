@@ -1,4 +1,4 @@
-use crate::model::password_hash_algorithems::PasswordHashAlg;
+use crate::model::password_hash_algorithms::PasswordHashAlg;
 use std::fmt::{Debug, Formatter};
 
 #[derive(Eq, PartialEq)]

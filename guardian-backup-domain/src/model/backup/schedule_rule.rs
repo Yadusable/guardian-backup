@@ -1,6 +1,7 @@
+use serde::{Deserialize, Serialize};
 use crate::model::duration::Duration;
 
-#[derive(Debug, Eq, PartialEq, Copy, Clone)]
+#[derive(Debug, Eq, PartialEq, Copy, Clone, Serialize, Deserialize)]
 pub struct ScheduleRule {
     lifetime: Duration,
     interval: Duration,

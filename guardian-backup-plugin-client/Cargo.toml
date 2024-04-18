@@ -9,3 +9,4 @@ edition = "2021"
 guardian-backup-application = {path = "../guardian-backup-application"}
 
 log = "0.4"
+clap = { version = "4.5.4", features = ["derive"] }
