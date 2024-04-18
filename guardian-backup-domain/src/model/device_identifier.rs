@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-#[derive(Eq, PartialEq, Debug, Serialize, Deserialize)]
+#[derive(Eq, PartialEq, Debug, Clone, Serialize, Deserialize)]
 pub struct DeviceIdentifier {
     identifier: Box<str>,
 }

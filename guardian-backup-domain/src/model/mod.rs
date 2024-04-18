@@ -2,7 +2,6 @@ pub mod backup;
 pub mod blobs;
 pub mod device_identifier;
 pub mod duration;
-pub mod error;
 pub mod files;
 pub mod timestamp;
 pub mod user;

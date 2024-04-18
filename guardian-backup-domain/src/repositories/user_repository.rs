@@ -1,19 +1,21 @@
+use std::borrow::Cow;
 use crate::model::device_identifier::DeviceIdentifier;
-use crate::model::error::AsyncResult;
 use crate::model::user::User;
 use crate::model::user_identifier::UserIdentifier;
 
 pub trait UserRepository {
-    fn get_user(&self, identifier: &UserIdentifier) -> AsyncResult<User>;
-    fn get_user_devices(&self, user: &UserIdentifier) -> AsyncResult<Box<[DeviceIdentifier]>>;
+    type Error;
 
-    fn create_user(&mut self, user: &User) -> AsyncResult<()>;
-    fn create_user_device(
+    async fn get_user(&self, identifier: &UserIdentifier) -> Result<User, Self::Error>;
+    async fn get_user_devices(&self, user: &UserIdentifier) -> Result<Cow<[DeviceIdentifier]>, Self::Error>;
+
+    async fn create_user(&mut self, user: &User) -> Result<(), Self::Error>;
+    async fn create_user_device(
         &mut self,
         user: &UserIdentifier,
         device: &DeviceIdentifier,
-    ) -> AsyncResult<()>;
+    ) -> Result<(), Self::Error>;
 
-    fn delete_user(&mut self, identifier: &UserIdentifier) -> AsyncResult<()>;
-    fn delete_device(&mut self, user: &UserIdentifier, device: &DeviceIdentifier);
+    async fn delete_user(&mut self, identifier: &UserIdentifier) -> Result<(), Self::Error>;
+    async fn delete_device(&mut self, user: &UserIdentifier, device: &DeviceIdentifier) -> Result<(), Self::Error>;
 }

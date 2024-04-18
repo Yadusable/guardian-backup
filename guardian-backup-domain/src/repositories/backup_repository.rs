@@ -1,7 +1,8 @@
+use std::borrow::Cow;
 use crate::model::backup::backup::Backup;
-use crate::model::error::AsyncResult;
-use crate::model::user::User;
+use crate::model::user_identifier::UserIdentifier;
 
 pub trait BackupRepository {
-    fn get_backups(&self, user: &User) -> AsyncResult<Box<[Backup]>>;
+    type Error;
+    async fn get_backups(&self, user: &UserIdentifier) -> Result<Cow<[Backup]>, Self::Error>;
 }

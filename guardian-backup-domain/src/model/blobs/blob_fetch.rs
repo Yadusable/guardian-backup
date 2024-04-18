@@ -1,9 +1,7 @@
-use crate::model::error::AsyncResult;
-
 pub trait BlobFetch {
-    fn read(&mut self, buf: &mut [u8]) -> AsyncResult<usize>;
+    type Error;
 
-    fn read_to_eof(&mut self) -> AsyncResult<Vec<u8>> {
-        todo!()
-    }
+    async fn read(&mut self, buf: &mut [u8]) -> Result<usize, Self::Error>;
+
+    async fn read_to_eof(self) -> Result<Box<[u8]>, Self::Error>;
 }

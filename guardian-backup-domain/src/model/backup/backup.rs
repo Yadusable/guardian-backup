@@ -4,7 +4,7 @@ use crate::model::device_identifier::DeviceIdentifier;
 use std::path::Path;
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Backup {
     device: DeviceIdentifier,
     schedule: Schedule,

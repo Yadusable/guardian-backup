@@ -1,7 +1,7 @@
 use std::fmt::{Display, Formatter};
 use serde::{Deserialize, Serialize};
 
-#[derive(Eq, PartialEq, Debug, Clone, Serialize, Deserialize)]
+#[derive(Eq, PartialEq, Hash, Debug, Clone, Serialize, Deserialize)]
 pub struct UserIdentifier(Box<str>);
 
 impl From<Box<str>> for UserIdentifier {

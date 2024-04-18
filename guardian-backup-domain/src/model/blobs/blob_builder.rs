@@ -1,8 +1,10 @@
-use crate::model::error::AsyncResult;
+use std::fmt::Error;
 use crate::model::files::file_hash::FileHash;
 
 pub trait BlobBuilder {
-    fn append_bytes(&mut self, data: &[u8]) -> AsyncResult<()>;
+    type Error;
 
-    fn get_hash(&self) -> AsyncResult<FileHash>;
+    async fn append_bytes(&mut self, data: &[u8]) -> Result<(), Error>;
+
+    fn get_hash(&self) -> FileHash;
 }

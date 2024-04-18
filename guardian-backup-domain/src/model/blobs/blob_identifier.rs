@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 use crate::model::files::file_hash::FileHash;
 use crate::model::user_identifier::UserIdentifier;
 
-#[derive(Eq, PartialEq, Debug, Serialize, Deserialize)]
+#[derive(Eq, PartialEq, Debug, Clone, Hash, Serialize, Deserialize)]
 pub struct BlobIdentifier {
     hash: FileHash,
     user: UserIdentifier,

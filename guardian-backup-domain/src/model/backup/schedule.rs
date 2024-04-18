@@ -1,10 +1,9 @@
 use std::time::UNIX_EPOCH;
 use serde::{Deserialize, Serialize};
 use crate::model::backup::schedule_rule::ScheduleRule;
-use crate::model::error::{GuardianError, Result};
 use crate::model::timestamp::Timestamp;
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Schedule {
     rules: Vec<ScheduleRule>,
     last_execution: Timestamp,
@@ -26,13 +25,11 @@ impl Schedule {
         self.rules.push(rule)
     }
 
-    pub fn remove_rule(&mut self, rule: &ScheduleRule) -> Result<()> {
+    pub fn remove_rule(&mut self, rule: &ScheduleRule) -> Result<(), ScheduleError> {
         let prev_size = self.rules.len();
         self.rules.retain(|e| e != rule);
         if prev_size == self.rules.len() {
-            return Err(GuardianError::InternalError {
-                message: "Tried to remove non existing rule from schedule".into(),
-            });
+            return Err(ScheduleError::RuleNotInSchedule);
         }
         Ok(())
     }
@@ -50,4 +47,8 @@ impl Default for Schedule {
     fn default() -> Self {
         Self::new(vec![], Timestamp::from_milliseconds(UNIX_EPOCH.elapsed().unwrap().as_millis() as u64))
     }
+}
+
+pub enum ScheduleError {
+    RuleNotInSchedule,
 }
