@@ -1,3 +1,4 @@
+use guardian_backup_domain::model::blobs::blob_fetch::BlobFetch;
 use crate::model::call::Call;
 use crate::model::response::Response;
 
@@ -12,6 +13,6 @@ pub trait ConnectionServerInterface {
 }
 pub trait IncomingCall {
     type Error;
-    async fn answer(self) -> Result<(), Self::Error>;
+    async fn answer<T: BlobFetch>(self, response: Response, blob_data: Option<T>) -> Result<(), Self::Error>;
     fn inner(&self) -> &Call;
 }

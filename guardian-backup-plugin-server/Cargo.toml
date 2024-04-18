@@ -7,13 +7,15 @@ edition = "2021"
 
 [dev-dependencies]
 guardian-backup-application = {path = "../guardian-backup-application", features = ["mocks"]}
-tokio = {features = ["test-util"]}
+tokio = {version = "1.37", features = ["test-util"]}
 
 
 [dependencies]
 guardian-backup-application = {path="../guardian-backup-application"}
 guardian-backup-domain = {path = "../guardian-backup-domain"}
 
-tokio = {version = "1.37", features = ["macros", "io-util", "rt"]}
+tokio = {version = "1.37", features = ["macros", "io-util", "rt", "net"]}
+ciborium = "0.2"
 
 log = "0.4"
+serde = { version = "1.0.198", features = ["derive"] }

@@ -3,8 +3,10 @@
 use std::path::PathBuf;
 use guardian_backup_application::model::call::Call;
 use guardian_backup_application::model::connection_interface::{ConnectionServerInterface, IncomingCall};
+use guardian_backup_application::model::response::Response;
 use guardian_backup_domain::model::backup::backup::Backup;
 use guardian_backup_domain::model::backup::schedule::Schedule;
+use guardian_backup_domain::model::blobs::blob_fetch::BlobFetch;
 use guardian_backup_domain::model::device_identifier::DeviceIdentifier;
 
 #[derive(Default, Debug)]
@@ -26,7 +28,7 @@ pub struct IncomingMockCall {
 impl IncomingCall for IncomingMockCall {
     type Error = ();
 
-    async fn answer(self) -> Result<(), Self::Error> {
+    async fn answer<T: BlobFetch>(self, _response: Response, _blob_data: Option<T>) -> Result<(), Self::Error> {
         Ok(())
     }
 

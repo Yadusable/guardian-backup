@@ -1,5 +1,7 @@
+use std::fmt::Debug;
+
 pub trait BlobFetch {
-    type Error;
+    type Error: Debug;
 
     async fn read(&mut self, buf: &mut [u8]) -> Result<usize, Self::Error>;
 
