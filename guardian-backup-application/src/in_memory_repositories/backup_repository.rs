@@ -18,4 +18,16 @@ impl BackupRepository for InMemoryBackupRepository {
             Some(res) => Cow::Borrowed(res)
         })
     }
+
+    async fn create_backup(&mut self, user: &UserIdentifier, backup: Backup) -> Result<(), Self::Error> {
+        if let Some(backups) = self.backups.get_mut(user) {
+            backups.push(backup);
+        } else {
+            let mut backups = Vec::new();
+            backups.push(backup);
+            self.backups.insert(user.clone(), backups);
+        }
+
+        Ok(())
+    }
 }

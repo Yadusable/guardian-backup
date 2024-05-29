@@ -38,7 +38,7 @@ impl BlobRepository for InMemoryBlobRepository {
     }
 
     async fn delete_blob(&mut self, blob: &BlobIdentifier) -> Result<(), Self::Error> {
-        self.blobs.remove(blob).ok_or(BlobRepositoryError::BlobNotFound).map(|e| ())
+        self.blobs.remove(blob).ok_or(BlobRepositoryError::BlobNotFound).map(|_| ())
     }
 
     fn fetch_blob(&self, blob: &BlobIdentifier) -> Result<Self::BlobFetch, Self::Error> {
