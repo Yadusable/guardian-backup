@@ -4,7 +4,7 @@ use crate::model::device_identifier::DeviceIdentifier;
 use std::path::Path;
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq)]
 pub struct Backup {
     device: DeviceIdentifier,
     schedule: Schedule,
@@ -25,6 +25,11 @@ impl Backup {
             file_root,
             snapshots,
         }
+    }
+
+    #[cfg(any(test, feature = "mocks"))]
+    pub fn mock() -> Self {
+        Self::new(DeviceIdentifier::default(), Schedule::default(), Path::new("/mockPath").into(), Vec::new())
     }
     
     pub fn add_snapshot(&mut self, new_snap: Snapshot){

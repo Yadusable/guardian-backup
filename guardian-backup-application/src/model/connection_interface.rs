@@ -1,4 +1,3 @@
-use guardian_backup_domain::helper::COptional;
 use guardian_backup_domain::model::blobs::blob_fetch::BlobFetch;
 use guardian_backup_domain::model::user_identifier::UserIdentifier;
 use crate::model::call::Call;

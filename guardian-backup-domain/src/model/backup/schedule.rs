@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use crate::model::backup::schedule_rule::ScheduleRule;
 use crate::model::timestamp::Timestamp;
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq)]
 pub struct Schedule {
     rules: Vec<ScheduleRule>,
     last_execution: Timestamp,

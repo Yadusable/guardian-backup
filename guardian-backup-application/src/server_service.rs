@@ -1,7 +1,5 @@
 use std::error::Error;
-use guardian_backup_domain::helper::CNone;
 use guardian_backup_domain::repositories::backup_repository::BackupRepository;
-use crate::in_memory_repositories::backup_repository::InMemoryBackupRepository;
 use crate::model::call::Call;
 use crate::model::connection_interface::{IncomingCall, UnhandledIncomingCall};
 use crate::model::response::Response::BackupCreated;

@@ -1,5 +1,4 @@
 use std::path::{Path};
-use guardian_backup_domain::model::backup::backup;
 use guardian_backup_domain::model::backup::backup::Backup;
 use guardian_backup_domain::model::backup::schedule::Schedule;
 use guardian_backup_domain::model::backup::snapshot::Snapshot;

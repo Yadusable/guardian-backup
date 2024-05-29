@@ -59,27 +59,10 @@ pub struct IncomingTcpCall<CallHandled: COptional<Item=Call>> {
     user: UserIdentifier,
 }
 
-impl<CallHandled: COptional<Item=Call>> IncomingCall for IncomingTcpCall<CallHandled> {
-    type Error = TcpConnectivityError;
-
-    async fn answer(mut self, response: Response) -> Result<(), Self::Error> {
-        self.send_response(response).await
-    }
-
-    async fn answer_with_blob(mut self, response: Response, blob_data: impl BlobFetch) -> Result<(), Self::Error> {
-        self.send_response(response).await?;
-        self.send_blob(blob_data).await
-    }
-
-    fn user(&self) -> &UserIdentifier {
-        &self.user
-    }
-}
-
 impl<CallHandled: COptional<Item=Call>> IncomingTcpCall<CallHandled> {
     async fn send_response(&mut self, response: Response) -> Result<(), <Self as IncomingCall>::Error>{
         let mut response_data = Vec::new();
-        ciborium::into_writer(&response, response_data.as_mut_slice()).expect("Vec can always grow");
+        ciborium::into_writer(&response, &mut response_data).expect("Vec can always grow");
 
         self.tx.write_u32(response_data.len() as u32).await?;
         self.tx.write_all(response_data.as_slice()).await?;
@@ -98,6 +81,27 @@ impl<CallHandled: COptional<Item=Call>> IncomingTcpCall<CallHandled> {
             self.tx.write_all(buf.split_at(read).0).await?
         }
         Ok(())
+    }
+}
+
+impl<CallHandled: COptional<Item=Call>> IncomingCall for IncomingTcpCall<CallHandled> {
+    type Error = TcpConnectivityError;
+
+    async fn answer(mut self, response: Response) -> Result<(), Self::Error> {
+        self.send_response(response).await?;
+        self.tx.flush().await?;
+        Ok(())
+    }
+
+    async fn answer_with_blob(mut self, response: Response, blob_data: impl BlobFetch) -> Result<(), Self::Error> {
+        self.send_response(response).await?;
+        self.send_blob(blob_data).await?;
+        self.tx.flush().await?;
+        Ok(())
+    }
+
+    fn user(&self) -> &UserIdentifier {
+        &self.user
     }
 }
 
@@ -149,3 +153,71 @@ impl Display for TcpConnectivityError {
 }
 
 impl std::error::Error for TcpConnectivityError {}
+
+#[cfg(test)]
+mod tests {
+    use std::net::SocketAddr;
+    use tokio::io::{AsyncReadExt, AsyncWriteExt};
+    use tokio::net::TcpStream;
+    use guardian_backup_application::model::call::Call;
+    use guardian_backup_application::model::connection_interface::ConnectionServerInterface;
+    use guardian_backup_application::server_config::ServerConfig;
+    use guardian_backup_domain::model::backup::backup::Backup;
+    use guardian_backup_application::model::connection_interface::UnhandledIncomingCall;
+    use guardian_backup_application::model::response::Response;
+    use guardian_backup_application::model::connection_interface::IncomingCall;
+    use crate::connectivity::tcp_connectivity::TcpServerConnectivity;
+
+    async fn send_call(addr: SocketAddr) -> TcpStream {
+        let backup = Backup::mock();
+        let call = Call::CreateBackup(backup);
+
+        let mut encoded = Vec::new();
+        ciborium::into_writer(&call, &mut encoded).unwrap();
+
+        let mut conn = TcpStream::connect(addr).await.unwrap();
+
+        conn.write_u32(encoded.len() as u32).await.unwrap();
+        conn.write_all(encoded.as_slice()).await.unwrap();
+
+        conn
+    }
+
+    async fn receive_response(stream: &mut TcpStream) -> Response {
+        let response_len = stream.read_u32().await.unwrap();
+        let mut response_buf = Vec::new();
+        response_buf.resize(response_len as usize, 0);
+        stream.read_exact(response_buf.as_mut_slice()).await.unwrap();
+
+        let response = ciborium::de::from_reader(response_buf.as_slice()).unwrap();
+
+        response
+    }
+
+    #[tokio::test]
+    async fn test_receive_request() {
+        let server_config = ServerConfig::test_config();
+        let mut server = TcpServerConnectivity::new(&server_config).await.unwrap();
+        send_call(server_config.bind_to).await;
+
+        let call = server.receive_request().await.unwrap();
+
+        assert_eq!(call.inner(), &Call::CreateBackup(Backup::mock()))
+    }
+
+    #[tokio::test]
+    async fn test_send_response() {
+        let server_config = ServerConfig::test_config();
+        let mut server = TcpServerConnectivity::new(&server_config).await.unwrap();
+        let mut client = send_call(server_config.bind_to).await;
+
+        let call = server.receive_request().await.unwrap();
+
+        call.answer(Response::BackupCreated).await.unwrap();
+
+        let received_response = receive_response(&mut client).await;
+
+        assert_eq!(received_response, Response::BackupCreated);
+    }
+
+}
