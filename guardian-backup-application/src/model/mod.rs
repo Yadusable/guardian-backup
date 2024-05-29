@@ -5,3 +5,5 @@ pub mod password_hash_algorithms;
 pub mod response;
 pub mod server_service;
 pub mod mocks;
+pub mod client_backup_service;
+pub mod client_config;

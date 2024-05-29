@@ -26,6 +26,10 @@ impl Backup {
             snapshots,
         }
     }
+    
+    pub fn add_snapshot(&mut self, new_snap: Snapshot){
+        self.snapshots.push(new_snap);
+    }
 
     pub fn device(&self) -> &DeviceIdentifier {
         &self.device
