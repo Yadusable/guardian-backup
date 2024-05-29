@@ -2,6 +2,7 @@
 
 use std::convert::Infallible;
 use std::path::PathBuf;
+use guardian_backup_application::in_memory_repositories::blob_repository::InMemoryBlobFetch;
 use guardian_backup_application::model::call::Call;
 use guardian_backup_application::model::connection_interface::{ConnectionServerInterface, IncomingCall, UnhandledIncomingCall};
 use guardian_backup_application::model::response::Response;
@@ -48,6 +49,10 @@ impl<CallHandled: COptional<Item=Call>> IncomingCall for IncomingMockCall<CallHa
 
     fn user(&self) -> &UserIdentifier {
         &self.user
+    }
+
+    async fn receive_blob(&mut self) -> Result<impl BlobFetch, Self::Error> {
+        Ok(InMemoryBlobFetch::new([].into()))
     }
 }
 

@@ -2,6 +2,9 @@ use std::fmt::Debug;
 
 pub trait BlobFetch {
     type Error: Debug;
+    
+    fn remaining_len(&self) -> u64;
+    fn total_len(&self) -> u64;
 
     async fn read(&mut self, buf: &mut [u8]) -> Result<usize, Self::Error>;
 

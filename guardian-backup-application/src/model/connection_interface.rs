@@ -5,7 +5,8 @@ use crate::model::response::Response;
 
 pub trait ConnectionClientInterface {
     type Error;
-    async fn send_request(&mut self, command: Call) -> Result<Response, Self::Error>;
+    async fn send_request(&mut self, command: &Call) -> Result<Response, Self::Error>;
+    async fn send_request_with_blob(&mut self, command: &Call, blob: impl BlobFetch) -> Result<Response, Self::Error>;
 }
 
 pub trait ConnectionServerInterface {
@@ -24,4 +25,5 @@ pub trait IncomingCall {
     async fn answer(self, response: Response) -> Result<(), Self::Error>;
     async fn answer_with_blob(self, response: Response, blob_data: impl BlobFetch) -> Result<(), Self::Error>;
     fn user(&self) -> &UserIdentifier;
+    async fn receive_blob(&mut self) -> Result<impl BlobFetch, Self::Error>;
 }

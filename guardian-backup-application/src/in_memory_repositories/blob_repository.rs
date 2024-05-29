@@ -58,12 +58,29 @@ pub struct InMemoryBlobFetch {
     cursor: usize,
 }
 
+impl InMemoryBlobFetch {
+    pub fn new(data: Arc<[u8]>) -> Self {
+        Self{
+            data,
+            cursor: 0,
+        }
+    }
+}
+
 impl BlobFetch for InMemoryBlobFetch {
     type Error = Infallible;
 
+    fn remaining_len(&self) -> u64 {
+        (self.data.len() - self.cursor) as u64
+    }
+
+    fn total_len(&self) -> u64 {
+        self.data.len() as u64
+    }
+
     async fn read(&mut self, buf: &mut [u8]) -> Result<usize, Self::Error> {
         let to_read = min(self.data.len() - self.cursor, buf.len());
-        buf.copy_from_slice(self.data.deref().split_at(self.cursor).1.split_at(to_read).0);
+        buf.split_at_mut(to_read).0.copy_from_slice(self.data.deref().split_at(self.cursor).1.split_at(to_read).0);
         self.cursor += to_read;
         Ok(to_read)
     }
