@@ -7,6 +7,7 @@ pub struct Snapshot {
     timestamp: Timestamp,
     expiration_time: Timestamp,
     file_tree_blob: BlobIdentifier,
+    associated_blobs: Vec<BlobIdentifier>,
 }
 
 impl Snapshot {
@@ -14,11 +15,13 @@ impl Snapshot {
         timestamp: Timestamp,
         expiration_time: Timestamp,
         file_tree_blob: BlobIdentifier,
+        associated_blobs: Vec<BlobIdentifier>,
     ) -> Self {
         Self {
             timestamp,
             expiration_time,
             file_tree_blob,
+            associated_blobs,
         }
     }
 

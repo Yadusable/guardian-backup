@@ -1,6 +1,6 @@
 use crate::model::call::Call;
 use crate::model::connection_interface::{IncomingCall, UnhandledIncomingCall};
-use crate::model::response::Response::BackupCreated;
+use crate::model::response::Response;
 use guardian_backup_domain::repositories::backup_repository::BackupRepository;
 use std::error::Error;
 
@@ -33,10 +33,12 @@ impl<B: BackupRepository> ServerService for MainServerService<B> {
                     .create_backup(user, backup)
                     .await
                     .map_err(|err| ServerServiceError::BackupRepositoryError(err.into()))?;
-                call.answer(BackupCreated)
+                call.answer(Response::Successful)
                     .await
                     .map_err(|err| ServerServiceError::ResponseError(err.into()))?;
             }
+
+            _ => unimplemented!(),
         }
 
         Ok(())
