@@ -1,5 +1,5 @@
-use std::fmt::Error;
 use crate::model::files::file_hash::FileHash;
+use std::fmt::Error;
 
 pub trait BlobBuilder {
     type Error;

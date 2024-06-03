@@ -1,5 +1,5 @@
-use std::fmt::{Display, Formatter};
 use serde::{Deserialize, Serialize};
+use std::fmt::{Display, Formatter};
 
 #[derive(Eq, PartialEq, Hash, Debug, Clone, Serialize, Deserialize)]
 pub struct UserIdentifier(Box<str>);

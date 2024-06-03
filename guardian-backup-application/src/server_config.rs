@@ -19,7 +19,10 @@ impl ServerConfig {
         static PORT_COUNTER: AtomicU16 = AtomicU16::new(18998);
 
         Self {
-            bind_to: SocketAddr::V4(SocketAddrV4::new(Ipv4Addr::new(127,0,0,1), PORT_COUNTER.fetch_add(1, Ordering::SeqCst))),
+            bind_to: SocketAddr::V4(SocketAddrV4::new(
+                Ipv4Addr::new(127, 0, 0, 1),
+                PORT_COUNTER.fetch_add(1, Ordering::SeqCst),
+            )),
         }
     }
 }

@@ -1,5 +1,5 @@
-use guardian_backup_domain::model::files::file_hash::FileHash;
 use crate::model::hash_service::{HashService, PendingHash};
+use guardian_backup_domain::model::files::file_hash::FileHash;
 
 pub struct MockHashService();
 

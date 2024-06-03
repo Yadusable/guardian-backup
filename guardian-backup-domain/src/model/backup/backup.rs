@@ -1,8 +1,8 @@
 use crate::model::backup::schedule::Schedule;
 use crate::model::backup::snapshot::Snapshot;
 use crate::model::device_identifier::DeviceIdentifier;
-use std::path::Path;
 use serde::{Deserialize, Serialize};
+use std::path::Path;
 
 #[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq)]
 pub struct Backup {
@@ -29,10 +29,15 @@ impl Backup {
 
     #[cfg(any(test, feature = "mocks"))]
     pub fn mock() -> Self {
-        Self::new(DeviceIdentifier::default(), Schedule::default(), Path::new("/mockPath").into(), Vec::new())
+        Self::new(
+            DeviceIdentifier::default(),
+            Schedule::default(),
+            Path::new("/mockPath").into(),
+            Vec::new(),
+        )
     }
-    
-    pub fn add_snapshot(&mut self, new_snap: Snapshot){
+
+    pub fn add_snapshot(&mut self, new_snap: Snapshot) {
         self.snapshots.push(new_snap);
     }
 

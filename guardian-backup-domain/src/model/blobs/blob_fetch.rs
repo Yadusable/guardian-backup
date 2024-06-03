@@ -1,7 +1,6 @@
-
 pub trait BlobFetch {
     type Error: std::error::Error + 'static;
-    
+
     fn remaining_len(&self) -> u64;
     fn total_len(&self) -> u64;
 
@@ -14,7 +13,7 @@ pub trait BlobFetch {
         loop {
             let read = self.read(&mut chunk).await?;
             if read == 0 {
-                break
+                break;
             }
 
             res.extend_from_slice(chunk.split_at(read).0)

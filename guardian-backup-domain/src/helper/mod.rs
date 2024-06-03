@@ -1,5 +1,5 @@
-use std::marker::PhantomData;
 use serde::{Deserialize, Serialize};
+use std::marker::PhantomData;
 
 pub trait COptional {
     type Item;
@@ -10,9 +10,12 @@ pub trait COptional {
 pub struct CSome<T>(pub T);
 pub struct CNone<T>(PhantomData<T>);
 
-impl<T> COptional for CSome<T> { type Item = T; }
-impl<T> COptional for CNone<T> { type Item = T; }
-
+impl<T> COptional for CSome<T> {
+    type Item = T;
+}
+impl<T> COptional for CNone<T> {
+    type Item = T;
+}
 
 impl<T> Default for CNone<T> {
     fn default() -> Self {

@@ -1,5 +1,5 @@
-use tokio::io::{AsyncRead, AsyncReadExt};
 use guardian_backup_domain::model::blobs::blob_fetch::BlobFetch;
+use tokio::io::{AsyncRead, AsyncReadExt};
 
 pub struct TokioBlobFetch<R: AsyncRead + Unpin> {
     reader: R,
