@@ -1,5 +1,5 @@
 #![allow(async_fn_in_trait)]
-mod connectivity;
+pub mod connectivity;
 
 
 fn main() {

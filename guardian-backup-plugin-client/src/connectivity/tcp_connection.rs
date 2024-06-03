@@ -15,7 +15,7 @@ pub struct TcpConnection {
 }
 
 impl TcpConnection {
-    pub async fn new(addr: SocketAddr) -> Self {
+    pub fn new(addr: SocketAddr) -> Self {
         Self {
             addr
         }
@@ -34,7 +34,8 @@ impl TcpConnection {
     
     async fn receive_response(&mut self, stream: &mut (impl AsyncRead + Unpin)) -> Result<Response, <Self as ConnectionClientInterface>::Error> {
         let response_len = stream.read_u32().await?;
-        let response_buf = vec![0; response_len as usize];
+        let mut response_buf = vec![0; response_len as usize];
+        stream.read_exact(response_buf.as_mut_slice()).await?;
         let response = ciborium::de::from_reader(response_buf.as_slice())?;
         Ok(response)
     }
@@ -58,6 +59,8 @@ impl ConnectionClientInterface for TcpConnection {
         let mut stream = BufStream::new(TcpStream::connect(self.addr).await?);
         
         self.send_request_internal(&mut stream, command).await?;
+        stream.write_u64(0).await?; // indicate zero sized blob
+        stream.flush().await?;
         
         let response = self.receive_response(&mut stream).await?;
         
@@ -73,6 +76,7 @@ impl ConnectionClientInterface for TcpConnection {
 
         self.send_request_internal(&mut stream, command).await?;
         self.send_blob(&mut stream, blob).await.map_err(|e| TcpConnectivityError::BlobFetch(Box::from(e)))?;
+        stream.flush().await?;
 
         let response = self.receive_response(&mut stream).await?;
 
@@ -91,7 +95,7 @@ pub struct IncomingTcpResponse {
 }
 
 impl IncomingResponse for IncomingTcpResponse {
-    type Error = tokio::io::Error;
+    type Error = TcpConnectivityError;
 
     fn inner(&self) -> &Response {
         &self.response
@@ -99,6 +103,9 @@ impl IncomingResponse for IncomingTcpResponse {
 
     async fn receive_blob(mut self) -> Result<impl BlobFetch, Self::Error> {
         let receive_len = self.stream.read_u64().await?;
+        if receive_len == 0 {
+            return Err(TcpConnectivityError::NoBlob)
+        }
         let fetch = TokioBlobFetch::new(self.stream, receive_len);
         Ok(fetch)
     }
@@ -108,7 +115,8 @@ impl IncomingResponse for IncomingTcpResponse {
 pub enum TcpConnectivityError {
     TokioIO(tokio::io::Error),
     Ciborium(ciborium::de::Error<std::io::Error>),
-    BlobFetch(Box<dyn std::error::Error>)
+    BlobFetch(Box<dyn Error>),
+    NoBlob,
 }
 
 impl From<tokio::io::Error> for TcpConnectivityError {
@@ -129,9 +137,49 @@ impl Display for TcpConnectivityError {
             TokioIO(inner) => write!(f, "{inner}"),
             Ciborium(inner) => write!(f, "{inner}"),
             TcpConnectivityError::BlobFetch(inner) => write!(f, "{inner}"),
+            TcpConnectivityError::NoBlob => write!(f, "NoBLOB")
         }
     }
 }
 
 impl Error for TcpConnectivityError {}
 
+#[cfg(test)]
+mod tests {
+    use guardian_backup_application::model::call::Call;
+    use guardian_backup_application::model::connection_interface::{ConnectionClientInterface, ConnectionServerInterface};
+    use guardian_backup_application::server_config::ServerConfig;
+    use guardian_backup_domain::model::backup::backup::Backup;
+    use guardian_backup_plugin_server::connectivity::tcp_connectivity::TcpServerConnectivity;
+    use crate::connectivity::tcp_connection::TcpConnection;
+    use guardian_backup_application::model::connection_interface::UnhandledIncomingCall;
+    use guardian_backup_application::model::connection_interface::IncomingCall;
+    use guardian_backup_application::model::response::Response;
+    use guardian_backup_application::model::connection_interface::IncomingResponse;
+
+    async fn run_server(mut server: TcpServerConnectivity, expected_call: Call)  {
+            let mut incoming = server.receive_request().await.unwrap();
+            assert_eq!(incoming.inner(), &expected_call);
+            incoming.receive_blob().await.err().expect("Expected to not receive any blob");
+
+            incoming.answer(Response::BackupCreated).await.unwrap();
+    }
+
+    #[tokio::test]
+    async fn test_send_request() {
+        let server_config = ServerConfig::test_config();
+        let server_socket = server_config.bind_to;
+        let backup = Backup::mock();
+        let call = Call::CreateBackup(backup);
+
+        let server = TcpServerConnectivity::new(&server_config).await.unwrap();
+
+        tokio::spawn(run_server(server, call.clone()));
+
+        let mut client = TcpConnection::new(server_socket);
+
+        let response = client.send_request(&call).await.unwrap();
+        assert_eq!(response.inner(), &Response::BackupCreated);
+        response.receive_blob().await.err().expect("No Blob expected");
+    }
+}

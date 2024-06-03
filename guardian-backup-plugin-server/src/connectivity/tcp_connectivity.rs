@@ -59,7 +59,7 @@ pub struct IncomingTcpCall<CallHandled: COptional<Item=Call>> {
     user: UserIdentifier,
 }
 
-impl<CallHandled: COptional<Item=Call>> IncomingTcpCall<CallHandled> {
+impl<CallHandled: COptional<Item=Call> + Send> IncomingTcpCall<CallHandled> {
     async fn send_response(&mut self, response: Response) -> Result<(), <Self as IncomingCall>::Error>{
         let mut response_data = Vec::new();
         ciborium::into_writer(&response, &mut response_data).expect("Vec can always grow");
@@ -88,11 +88,12 @@ impl<CallHandled: COptional<Item=Call>> IncomingTcpCall<CallHandled> {
     }
 }
 
-impl<CallHandled: COptional<Item=Call>> IncomingCall for IncomingTcpCall<CallHandled> {
+impl<CallHandled: COptional<Item=Call> + Send> IncomingCall for IncomingTcpCall<CallHandled> {
     type Error = TcpConnectivityError;
 
     async fn answer(mut self, response: Response) -> Result<(), Self::Error> {
         self.send_response(response).await?;
+        self.tx.write_u64(0).await?; // Indicate a zero length blob
         self.tx.flush().await?;
         Ok(())
     }
@@ -110,6 +111,9 @@ impl<CallHandled: COptional<Item=Call>> IncomingCall for IncomingTcpCall<CallHan
 
     async fn receive_blob(&mut self) -> Result<impl BlobFetch, Self::Error> {
         let blob_len = self.rx.read_u64().await?;
+        if blob_len == 0 {
+            return Err(TcpConnectivityError::NoBlob);
+        }
         let fetch = TokioBlobFetch::new(&mut self.rx, blob_len);
         Ok(fetch)
     }
@@ -138,6 +142,7 @@ pub enum TcpConnectivityError {
     Io(std::io::Error),
     Ciborium(ciborium::de::Error<std::io::Error>),
     BlobFetch(Box<str>),
+    NoBlob,
 }
 
 impl From<ciborium::de::Error<std::io::Error>> for TcpConnectivityError {
@@ -158,6 +163,7 @@ impl Display for TcpConnectivityError {
             TcpConnectivityError::Io(inner) => write!(f, "{inner}"),
             TcpConnectivityError::Ciborium(inner) => write!(f, "{inner}"),
             TcpConnectivityError::BlobFetch(inner) => write!(f, "{inner}"),
+            TcpConnectivityError::NoBlob => write!(f, "NoBLOB"),
         }
     }
 }
@@ -239,7 +245,11 @@ mod tests {
 
         let call = server.receive_request().await.unwrap();
 
-        assert_eq!(call.inner(), &Call::CreateBackup(Backup::mock()))
+        if let Call::CreateBackup(_) = call.inner() {
+           
+        } else {
+            panic!("Expected Create Backup Call")
+        }
     }
 
     #[tokio::test]

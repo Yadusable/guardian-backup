@@ -36,7 +36,7 @@ impl IncomingMockCall<CNone<Call>> {
     }
 }
 
-impl<CallHandled: COptional<Item=Call>> IncomingCall for IncomingMockCall<CallHandled> {
+impl<CallHandled: COptional<Item=Call> + Send> IncomingCall for IncomingMockCall<CallHandled> {
     type Error = Infallible;
 
     async fn answer(self, _response: Response) -> Result<(), Self::Error> {

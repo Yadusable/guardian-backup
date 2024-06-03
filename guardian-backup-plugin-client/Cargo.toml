@@ -7,6 +7,7 @@ edition = "2021"
 
 [dev-dependencies]
 guardian-backup-application = {path = "../guardian-backup-application", features = ["mocks"]}
+guardian-backup-plugin-server = {path = "../guardian-backup-plugin-server"}
 tokio = {version = "1.37", features = ["test-util"]}
 
 [dependencies]
