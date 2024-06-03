@@ -7,8 +7,8 @@ pub struct DeviceIdentifier {
 
 impl Default for DeviceIdentifier {
     fn default() -> Self {
-        Self{
-            identifier: "DefaultDevice".into()
+        Self {
+            identifier: "DefaultDevice".into(),
         }
     }
 }

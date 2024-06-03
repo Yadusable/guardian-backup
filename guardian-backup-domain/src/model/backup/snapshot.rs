@@ -1,8 +1,8 @@
-use serde::{Deserialize, Serialize};
 use crate::model::blobs::blob_identifier::BlobIdentifier;
 use crate::model::timestamp::Timestamp;
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq)]
 pub struct Snapshot {
     timestamp: Timestamp,
     expiration_time: Timestamp,

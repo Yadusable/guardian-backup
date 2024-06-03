@@ -7,7 +7,7 @@ pub struct Timestamp {
 
 impl Timestamp {
     pub fn from_milliseconds(millis: u64) -> Self {
-        Self{
+        Self {
             milliseconds_since_epoch: millis,
         }
     }
