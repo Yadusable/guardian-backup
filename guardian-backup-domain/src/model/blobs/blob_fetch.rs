@@ -1,7 +1,6 @@
-use std::fmt::Debug;
 
 pub trait BlobFetch {
-    type Error: Debug;
+    type Error: std::error::Error + 'static;
     
     fn remaining_len(&self) -> u64;
     fn total_len(&self) -> u64;
