@@ -8,6 +8,9 @@ use guardian_backup_application::model::connection_interface::{
 use guardian_backup_application::model::response::Response;
 use guardian_backup_application::model::response::Response::BackupCreated;
 use guardian_backup_domain::model::blobs::blob_fetch::BlobFetch;
+use std::convert::Infallible;
+use std::error::Error;
+use std::fmt::{Display, Formatter};
 
 pub struct MockConnection();
 
@@ -36,19 +39,35 @@ impl ConnectionClientInterface for MockConnection {
     }
 }
 
+#[derive(Debug)]
 pub struct MockIncomingResponse {
     response: Response,
     blob: Option<InMemoryBlobFetch>,
 }
 
 impl IncomingResponse for MockIncomingResponse {
-    type Error = ();
+    type Error = IncomingMockError;
 
     fn inner(&self) -> &Response {
         &self.response
     }
 
     async fn receive_blob(self) -> Result<impl BlobFetch, Self::Error> {
-        self.blob.ok_or(())
+        self.blob.ok_or(IncomingMockError::NoBLOB)
     }
 }
+
+#[derive(Debug)]
+pub enum IncomingMockError {
+    NoBLOB,
+}
+
+impl Display for IncomingMockError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            IncomingMockError::NoBLOB => write!(f, "NoBLOB"),
+        }
+    }
+}
+
+impl Error for IncomingMockError {}

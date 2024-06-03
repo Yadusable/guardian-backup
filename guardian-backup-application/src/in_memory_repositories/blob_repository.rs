@@ -68,6 +68,7 @@ pub enum BlobRepositoryError {
     BlobNotFound,
 }
 
+#[derive(Debug)]
 pub struct InMemoryBlobFetch {
     data: Arc<[u8]>,
     cursor: usize,

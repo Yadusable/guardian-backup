@@ -100,6 +100,7 @@ impl ConnectionClientInterface for TcpConnection {
     }
 }
 
+#[derive(Debug)]
 pub struct IncomingTcpResponse {
     response: Response,
     stream: BufStream<TcpStream>,
@@ -158,6 +159,7 @@ impl Error for TcpConnectivityError {}
 #[cfg(test)]
 mod tests {
     use crate::connectivity::tcp_connection::TcpConnection;
+    use guardian_backup_application::in_memory_repositories::blob_repository::InMemoryBlobFetch;
     use guardian_backup_application::model::call::Call;
     use guardian_backup_application::model::connection_interface::IncomingCall;
     use guardian_backup_application::model::connection_interface::IncomingResponse;
@@ -168,19 +170,8 @@ mod tests {
     use guardian_backup_application::model::response::Response;
     use guardian_backup_application::server_config::ServerConfig;
     use guardian_backup_domain::model::backup::backup::Backup;
+    use guardian_backup_domain::model::blobs::blob_fetch::BlobFetch;
     use guardian_backup_plugin_server::connectivity::tcp_connectivity::TcpServerConnectivity;
-
-    async fn run_server(mut server: TcpServerConnectivity, expected_call: Call) {
-        let mut incoming = server.receive_request().await.unwrap();
-        assert_eq!(incoming.inner(), &expected_call);
-        incoming
-            .receive_blob()
-            .await
-            .err()
-            .expect("Expected to not receive any blob");
-
-        incoming.answer(Response::BackupCreated).await.unwrap();
-    }
 
     #[tokio::test]
     async fn test_send_request() {
@@ -188,10 +179,21 @@ mod tests {
         let server_socket = server_config.bind_to;
         let backup = Backup::mock();
         let call = Call::CreateBackup(backup);
+        let expected_call = call.clone();
 
-        let server = TcpServerConnectivity::new(&server_config).await.unwrap();
+        let mut server = TcpServerConnectivity::new(&server_config).await.unwrap();
 
-        tokio::spawn(run_server(server, call.clone()));
+        tokio::spawn(async move {
+            let mut incoming = server.receive_request().await.unwrap();
+            assert_eq!(incoming.inner(), &expected_call);
+            incoming
+                .receive_blob()
+                .await
+                .err()
+                .expect("Expected to not receive any blob");
+
+            incoming.answer(Response::BackupCreated).await.unwrap();
+        });
 
         let mut client = TcpConnection::new(server_socket);
 
@@ -202,5 +204,79 @@ mod tests {
             .await
             .err()
             .expect("No Blob expected");
+    }
+
+    #[tokio::test]
+    async fn test_send_request_blob() {
+        let server_config = ServerConfig::test_config();
+        let server_socket = server_config.bind_to;
+        let backup = Backup::mock();
+        let call = Call::CreateBackup(backup);
+        let expected_call = call.clone();
+        let test_blob = [0xf0; 4096];
+
+        let mut server = TcpServerConnectivity::new(&server_config).await.unwrap();
+
+        tokio::spawn(async move {
+            let mut incoming = server.receive_request().await.unwrap();
+            assert_eq!(incoming.inner(), &expected_call);
+            let mut blob = incoming.receive_blob().await.unwrap();
+
+            assert_eq!(blob.read_to_eof().await.unwrap().as_ref(), test_blob);
+
+            drop(blob);
+            incoming.answer(Response::BackupCreated).await.unwrap();
+        });
+
+        let mut client = TcpConnection::new(server_socket);
+
+        let response = client
+            .send_request_with_blob(&call, InMemoryBlobFetch::new(test_blob.into()))
+            .await
+            .unwrap();
+        assert_eq!(response.inner(), &Response::BackupCreated);
+        response
+            .receive_blob()
+            .await
+            .err()
+            .expect("No Blob expected");
+    }
+
+    #[tokio::test]
+    async fn test_receive_blob() {
+        let server_config = ServerConfig::test_config();
+        let server_socket = server_config.bind_to;
+        let backup = Backup::mock();
+        let call = Call::CreateBackup(backup);
+        let expected_call = call.clone();
+        let test_blob = [0xf0; 4096];
+
+        let mut server = TcpServerConnectivity::new(&server_config).await.unwrap();
+
+        tokio::spawn(async move {
+            let mut incoming = server.receive_request().await.unwrap();
+            assert_eq!(incoming.inner(), &expected_call);
+            incoming
+                .receive_blob()
+                .await
+                .err()
+                .expect("Expected to not receive any blob");
+
+            incoming
+                .answer_with_blob(
+                    Response::BackupCreated,
+                    InMemoryBlobFetch::new(test_blob.into()),
+                )
+                .await
+                .unwrap();
+        });
+
+        let mut client = TcpConnection::new(server_socket);
+
+        let response = client.send_request(&call).await.unwrap();
+        assert_eq!(response.inner(), &Response::BackupCreated);
+
+        let mut blob = response.receive_blob().await.unwrap();
+        assert_eq!(blob.read_to_eof().await.unwrap().as_ref(), test_blob);
     }
 }
