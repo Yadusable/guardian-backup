@@ -7,7 +7,7 @@ use guardian_backup_application::model::connection_interface::{
 };
 use guardian_backup_application::model::response::Response;
 use guardian_backup_domain::helper::{CNone, COptional, CSome};
-use guardian_backup_domain::model::backup::backup::Backup;
+use guardian_backup_domain::model::backup::backup::{Backup, BackupId};
 use guardian_backup_domain::model::backup::schedule::Schedule;
 use guardian_backup_domain::model::blobs::blob_fetch::BlobFetch;
 use guardian_backup_domain::model::device_identifier::DeviceIdentifier;
@@ -24,6 +24,7 @@ impl ConnectionServerInterface for MockConnection {
 
     async fn receive_request(&mut self) -> Result<impl UnhandledIncomingCall, Self::Error> {
         Ok(IncomingMockCall::new(Call::CreateBackup(Backup::new(
+            BackupId("Mock".into()),
             DeviceIdentifier::default(),
             Schedule::default(),
             PathBuf::from("tmp/mocks/").into(),
@@ -49,12 +50,12 @@ impl IncomingMockCall<CNone<Call>> {
 impl<CallHandled: COptional<Item = Call> + Send> IncomingCall for IncomingMockCall<CallHandled> {
     type Error = Infallible;
 
-    async fn answer(self, _response: Response) -> Result<(), Self::Error> {
+    async fn answer(&mut self, _response: Response) -> Result<(), Self::Error> {
         Ok(())
     }
 
     async fn answer_with_blob(
-        self,
+        &mut self,
         _response: Response,
         _blob_data: impl BlobFetch,
     ) -> Result<(), Self::Error> {

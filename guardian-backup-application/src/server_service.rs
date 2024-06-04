@@ -9,6 +9,7 @@ use guardian_backup_domain::model::backup::backup::BackupId;
 use guardian_backup_domain::repositories::backup_repository::BackupRepository;
 use guardian_backup_domain::repositories::blob_repository::BlobRepository;
 use std::error::Error;
+use std::fmt::{Display, Formatter};
 
 pub trait ServerService {
     type Error;
@@ -32,6 +33,23 @@ impl<B: BackupRepository, L: BlobRepository> ServerService for MainServerService
         call: impl UnhandledIncomingCall,
     ) -> Result<(), Self::Error> {
         let (call_variant, mut call) = call.into_inner();
+
+        if let Err(err) = self.internal_handle(&mut call, call_variant).await {
+            call.answer(Response::Error(format!("{err}").into()))
+                .await
+                .map_err(|e| ResponseError(e.into()))?;
+        }
+
+        Ok(())
+    }
+}
+
+impl<B: BackupRepository, L: BlobRepository> MainServerService<B, L> {
+    async fn internal_handle(
+        &mut self,
+        call: &mut impl IncomingCall,
+        call_variant: Call,
+    ) -> Result<(), ServerServiceError> {
         let user = call.user();
 
         match call_variant {
@@ -115,6 +133,7 @@ impl<B: BackupRepository, L: BlobRepository> ServerService for MainServerService
     }
 }
 
+#[derive(Debug)]
 pub enum ServerServiceError {
     BackupRepositoryError(Box<dyn Error>),
     BlobRepositoryError(Box<dyn Error>),
@@ -122,4 +141,17 @@ pub enum ServerServiceError {
     BackupIdNotFound(BackupId),
     BlobFetchError(Box<dyn Error>),
     NoPermission,
+}
+
+impl Display for ServerServiceError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            BackupRepositoryError(inner) => write!(f, "BackupRepositoryError({inner})"),
+            BlobRepositoryError(inner) => write!(f, "BlobRepositoryError({inner})"),
+            ResponseError(inner) => write!(f, "ResponseError({inner})"),
+            BackupIdNotFound(inner) => write!(f, "BackupIdNotFound({inner})"),
+            BlobFetchError(inner) => write!(f, "BlobFetchError({inner})"),
+            NoPermission => write!(f, ""),
+        }
+    }
 }

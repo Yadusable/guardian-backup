@@ -5,7 +5,7 @@ use guardian_backup_domain::repositories::blob_repository::BlobRepository;
 use std::cmp::min;
 use std::collections::HashMap;
 use std::convert::Infallible;
-use std::fmt::{write, Display, Formatter};
+use std::fmt::{Display, Formatter};
 use std::ops::Deref;
 use std::sync::Arc;
 

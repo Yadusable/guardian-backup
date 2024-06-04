@@ -3,6 +3,7 @@ use crate::model::backup::snapshot::Snapshot;
 use crate::model::device_identifier::DeviceIdentifier;
 use serde::{Deserialize, Serialize};
 use std::convert::Infallible;
+use std::fmt::{Display, Formatter};
 use std::path::Path;
 use std::str::FromStr;
 use std::sync::atomic::AtomicU16;
@@ -82,6 +83,12 @@ impl Backup {
 #[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq, Hash)]
 #[serde(transparent)]
 pub struct BackupId(pub Box<str>);
+
+impl Display for BackupId {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
 
 impl FromStr for BackupId {
     type Err = Infallible;
