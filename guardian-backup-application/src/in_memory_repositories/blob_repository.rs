@@ -1,16 +1,10 @@
-use crate::model::hash_service::{HashService, PendingHash};
-use crate::model::mocks::mock_hash_service::{MockHashService, MockPendingHash};
-use guardian_backup_domain::model::blobs::blob_builder::BlobBuilder;
-use guardian_backup_domain::model::blobs::blob_creation_hint::BlobCreationHint;
+use crate::in_memory_repositories::blob_repository::BlobRepositoryError::ReadBlobError;
 use guardian_backup_domain::model::blobs::blob_fetch::BlobFetch;
 use guardian_backup_domain::model::blobs::blob_identifier::BlobIdentifier;
-use guardian_backup_domain::model::files::file_hash::FileHash;
-use guardian_backup_domain::model::user_identifier::UserIdentifier;
 use guardian_backup_domain::repositories::blob_repository::BlobRepository;
 use std::cmp::min;
 use std::collections::HashMap;
 use std::convert::Infallible;
-use std::fmt::Error;
 use std::ops::Deref;
 use std::sync::Arc;
 
@@ -20,29 +14,22 @@ pub struct InMemoryBlobRepository {
 
 impl BlobRepository for InMemoryBlobRepository {
     type Error = BlobRepositoryError;
-    type Builder = InMemoryBlobBuilder<MockPendingHash>;
-    type BlobFetch = InMemoryBlobFetch;
 
-    async fn start_create_blob(
-        &self,
-        user: &UserIdentifier,
-        _hint: &BlobCreationHint,
-    ) -> Result<Self::Builder, Self::Error> {
-        Ok(InMemoryBlobBuilder {
-            user: user.clone(),
-            data: vec![],
-            hash: MockHashService::create_hash(),
-        })
-    }
-
-    async fn finalize_blob(
+    async fn insert_blob(
         &mut self,
-        builder: Self::Builder,
-    ) -> Result<BlobIdentifier, Self::Error> {
-        let blob_identifier = BlobIdentifier::new(builder.get_hash(), builder.user);
-        self.blobs
-            .insert(blob_identifier.clone(), builder.data.into());
-        Ok(blob_identifier)
+        id: &BlobIdentifier,
+        mut blob: impl BlobFetch,
+    ) -> Result<(), Self::Error> {
+        if self.blobs.contains_key(id) {
+            return Ok(());
+        }
+
+        let data = blob
+            .read_to_eof()
+            .await
+            .map_err(|e| ReadBlobError(e.into()))?;
+        self.blobs.insert(id.clone(), data.into());
+        Ok(())
     }
 
     async fn delete_blob(&mut self, blob: &BlobIdentifier) -> Result<(), Self::Error> {
@@ -52,7 +39,7 @@ impl BlobRepository for InMemoryBlobRepository {
             .map(|_| ())
     }
 
-    fn fetch_blob(&self, blob: &BlobIdentifier) -> Result<Self::BlobFetch, Self::Error> {
+    async fn fetch_blob(&self, blob: &BlobIdentifier) -> Result<impl BlobFetch, Self::Error> {
         Ok(InMemoryBlobFetch {
             data: self
                 .blobs
@@ -66,6 +53,7 @@ impl BlobRepository for InMemoryBlobRepository {
 
 pub enum BlobRepositoryError {
     BlobNotFound,
+    ReadBlobError(Box<dyn std::error::Error>),
 }
 
 #[derive(Debug)]
@@ -103,25 +91,5 @@ impl BlobFetch for InMemoryBlobFetch {
         );
         self.cursor += to_read;
         Ok(to_read)
-    }
-}
-
-pub struct InMemoryBlobBuilder<H: PendingHash> {
-    data: Vec<u8>,
-    user: UserIdentifier,
-    hash: H,
-}
-
-impl<H: PendingHash> BlobBuilder for InMemoryBlobBuilder<H> {
-    type Error = Infallible;
-
-    async fn append_bytes(&mut self, data: &[u8]) -> Result<(), Error> {
-        self.data.extend_from_slice(data);
-        self.hash.update(data);
-        Ok(())
-    }
-
-    fn get_hash(&self) -> FileHash {
-        self.hash.finalize()
     }
 }
