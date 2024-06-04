@@ -5,6 +5,7 @@ use guardian_backup_domain::repositories::blob_repository::BlobRepository;
 use std::cmp::min;
 use std::collections::HashMap;
 use std::convert::Infallible;
+use std::fmt::{write, Display, Formatter};
 use std::ops::Deref;
 use std::sync::Arc;
 
@@ -17,10 +18,10 @@ impl BlobRepository for InMemoryBlobRepository {
 
     async fn insert_blob(
         &mut self,
-        id: &BlobIdentifier,
+        id: BlobIdentifier,
         mut blob: impl BlobFetch,
     ) -> Result<(), Self::Error> {
-        if self.blobs.contains_key(id) {
+        if self.blobs.contains_key(&id) {
             return Ok(());
         }
 
@@ -28,7 +29,7 @@ impl BlobRepository for InMemoryBlobRepository {
             .read_to_eof()
             .await
             .map_err(|e| ReadBlobError(e.into()))?;
-        self.blobs.insert(id.clone(), data.into());
+        self.blobs.insert(id, data.into());
         Ok(())
     }
 
@@ -51,10 +52,22 @@ impl BlobRepository for InMemoryBlobRepository {
     }
 }
 
+#[derive(Debug)]
 pub enum BlobRepositoryError {
     BlobNotFound,
     ReadBlobError(Box<dyn std::error::Error>),
 }
+
+impl Display for BlobRepositoryError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            BlobRepositoryError::BlobNotFound => write!(f, "BlobNotFound"),
+            ReadBlobError(e) => write!(f, "BlobReadError{e}"),
+        }
+    }
+}
+
+impl std::error::Error for BlobRepositoryError {}
 
 #[derive(Debug)]
 pub struct InMemoryBlobFetch {

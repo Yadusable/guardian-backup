@@ -7,6 +7,6 @@ pub enum Call {
     CreateBackup(Backup),
     GetBackups,
     PatchBackup(Backup),
-    CreateBlob,
+    CreateBlob(BlobIdentifier),
     GetBlob(BlobIdentifier),
 }

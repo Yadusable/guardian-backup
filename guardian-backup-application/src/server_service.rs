@@ -2,10 +2,12 @@ use crate::model::call::Call;
 use crate::model::connection_interface::{IncomingCall, UnhandledIncomingCall};
 use crate::model::response::Response;
 use crate::server_service::ServerServiceError::{
-    BackupIdNotFound, BackupRepositoryError, ResponseError,
+    BackupIdNotFound, BackupRepositoryError, BlobFetchError, BlobRepositoryError, NoPermission,
+    ResponseError,
 };
 use guardian_backup_domain::model::backup::backup::BackupId;
 use guardian_backup_domain::repositories::backup_repository::BackupRepository;
+use guardian_backup_domain::repositories::blob_repository::BlobRepository;
 use std::error::Error;
 
 pub trait ServerService {
@@ -17,18 +19,19 @@ pub trait ServerService {
     ) -> Result<(), Self::Error>;
 }
 
-pub struct MainServerService<B: BackupRepository> {
+pub struct MainServerService<B: BackupRepository, L: BlobRepository> {
     backup_repository: B,
+    blob_repository: L,
 }
 
-impl<B: BackupRepository> ServerService for MainServerService<B> {
+impl<B: BackupRepository, L: BlobRepository> ServerService for MainServerService<B, L> {
     type Error = ServerServiceError;
 
     async fn handle_incoming_request(
         &mut self,
         call: impl UnhandledIncomingCall,
     ) -> Result<(), Self::Error> {
-        let (call_variant, call) = call.into_inner();
+        let (call_variant, mut call) = call.into_inner();
         let user = call.user();
 
         match call_variant {
@@ -73,7 +76,39 @@ impl<B: BackupRepository> ServerService for MainServerService<B> {
                     .map_err(|e| ResponseError(e.into()))?;
             }
 
-            _ => unimplemented!(),
+            Call::CreateBlob(id) => {
+                if id.user() != call.user() {
+                    return Err(NoPermission);
+                }
+
+                let blob = call
+                    .receive_blob()
+                    .await
+                    .map_err(|e| BlobFetchError(e.into()))?;
+                self.blob_repository
+                    .insert_blob(id, blob)
+                    .await
+                    .map_err(|e| BlobRepositoryError(e.into()))?;
+
+                call.answer(Response::Successful)
+                    .await
+                    .map_err(|e| ResponseError(e.into()))?;
+            }
+
+            Call::GetBlob(id) => {
+                if id.user() != call.user() {
+                    return Err(NoPermission);
+                }
+
+                let blob = self
+                    .blob_repository
+                    .fetch_blob(&id)
+                    .await
+                    .map_err(|e| BlobRepositoryError(e.into()))?;
+                call.answer_with_blob(Response::Successful, blob)
+                    .await
+                    .map_err(|e| ResponseError(e.into()))?;
+            }
         }
 
         Ok(())
@@ -82,6 +117,9 @@ impl<B: BackupRepository> ServerService for MainServerService<B> {
 
 pub enum ServerServiceError {
     BackupRepositoryError(Box<dyn Error>),
+    BlobRepositoryError(Box<dyn Error>),
     ResponseError(Box<dyn Error>),
     BackupIdNotFound(BackupId),
+    BlobFetchError(Box<dyn Error>),
+    NoPermission,
 }
