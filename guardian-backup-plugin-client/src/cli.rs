@@ -1,5 +1,6 @@
 use clap::{Parser, Subcommand};
 use std::path::PathBuf;
+use guardian_backup_application::model::client_model::{ClientBackupCommand, ClientCommand, ClientSubcommand};
 
 #[derive(Parser)]
 pub struct Cli {
@@ -29,7 +30,7 @@ pub enum EntityType {
 
     /// Create an (automated) backup, restore from a backup
     #[clap(subcommand)]
-    Backup(BackupCommands),
+    Backup(BackupCommand),
 }
 
 // In case we need more sophisticated server options
@@ -38,7 +39,7 @@ enum ServerCommands {
 }*/
 
 #[derive(Subcommand)]
-pub enum BackupCommands {
+pub enum BackupCommand {
     /// Set rules for automated backup
     Auto {
         /// Set path which will be backed up
@@ -63,4 +64,43 @@ pub enum BackupCommands {
         #[arg(short, long)]
         backup_root: PathBuf,
     },
+}
+
+impl From<Cli> for ClientCommand {
+    fn from(value: Cli) -> Self {
+        match value {
+            Cli { entity_type } => {
+                ClientCommand{ subcommand: entity_type.into()}
+            }
+        }
+    }
+}
+
+impl From<EntityType> for ClientSubcommand{
+    fn from(value: EntityType) -> Self {
+        match value {
+            EntityType::Server { url, user_name, password } => {
+                ClientSubcommand::Server {url, user_name, password }
+            }
+            EntityType::Backup(inner) => {
+                ClientSubcommand::Backup (inner.into())
+            }
+        }
+    }
+}
+
+impl From<BackupCommand> for ClientBackupCommand {
+    fn from(value: BackupCommand) -> Self {
+        match value {
+            BackupCommand::Auto { backup_root, retention_period } => {
+                ClientBackupCommand::Auto {backup_root, retention_period}
+            }
+            BackupCommand::Create { backup_root, retention_period } => {
+                ClientBackupCommand::Create {backup_root, retention_period }
+            }
+            BackupCommand::Restore { backup_root } => {
+                ClientBackupCommand::Restore {backup_root}
+            }
+        }
+    }
 }

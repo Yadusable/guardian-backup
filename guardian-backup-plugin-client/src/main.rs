@@ -1,11 +1,13 @@
 #![allow(async_fn_in_trait)]
 
 use clap::Parser;
+use guardian_backup_application::client_service::{ClientService, MainClientService};
 
 mod cli;
 mod connectivity;
 
 fn main() {
     let cli = cli::Cli::parse();
-    println!("Hello, world!");
+    let mut client_service = MainClientService::new();
+    client_service.handle_command(cli.into()).unwrap();
 }
