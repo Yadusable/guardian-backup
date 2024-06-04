@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 pub enum Call {
     CreateBackup(Backup),
     GetBackups,
-    PatchBackup,
+    PatchBackup(Backup),
     CreateBlob,
     GetBlob(BlobIdentifier),
 }
