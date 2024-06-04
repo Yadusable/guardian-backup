@@ -8,6 +8,14 @@ pub struct InMemoryBackupRepository {
     backups: HashMap<UserIdentifier, HashMap<BackupId, Backup>>,
 }
 
+impl InMemoryBackupRepository {
+    pub fn new() -> Self {
+        InMemoryBackupRepository {
+            backups: HashMap::new(),
+        }
+    }
+}
+
 impl BackupRepository for InMemoryBackupRepository {
     type Error = Infallible;
 

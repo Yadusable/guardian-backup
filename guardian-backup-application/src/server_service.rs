@@ -45,6 +45,13 @@ impl<B: BackupRepository, L: BlobRepository> ServerService for MainServerService
 }
 
 impl<B: BackupRepository, L: BlobRepository> MainServerService<B, L> {
+    pub fn new(backup_repository: B, blob_repository: L) -> Self {
+        Self {
+            backup_repository,
+            blob_repository,
+        }
+    }
+
     async fn internal_handle(
         &mut self,
         call: &mut impl IncomingCall,

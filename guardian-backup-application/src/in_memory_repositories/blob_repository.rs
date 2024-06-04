@@ -13,6 +13,14 @@ pub struct InMemoryBlobRepository {
     blobs: HashMap<BlobIdentifier, Arc<[u8]>>,
 }
 
+impl InMemoryBlobRepository {
+    pub fn new() -> Self {
+        InMemoryBlobRepository {
+            blobs: HashMap::new(),
+        }
+    }
+}
+
 impl BlobRepository for InMemoryBlobRepository {
     type Error = BlobRepositoryError;
 
