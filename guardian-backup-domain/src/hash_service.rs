@@ -3,6 +3,12 @@ use crate::model::files::file_hash::FileHash;
 
 pub struct HashService {}
 
+impl HashService {
+    pub fn preferred_hasher(&self) -> Box<dyn Hasher<PendingHash = Box<dyn PendingHash>>> {
+        todo!()
+    }
+}
+
 pub trait Hasher {
     type PendingHash;
 

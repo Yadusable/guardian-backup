@@ -3,13 +3,16 @@ use crate::file_service::FileService;
 use crate::model::client_model::{ClientBackupCommand, ClientCommand, ClientSubcommand};
 use guardian_backup_domain::hash_service::HashService;
 use guardian_backup_domain::model::blobs::blob_fetch::BlobFetch;
-use guardian_backup_domain::model::files::file_tree::FileTreeNode;
+use guardian_backup_domain::model::files::file_tree::{
+    FileTreeDiff, FileTreeDiffType, FileTreeNode,
+};
 use guardian_backup_domain::model::user_identifier::UserIdentifier;
 use guardian_backup_domain::repositories::backup_repository::BackupRepository;
 use guardian_backup_domain::repositories::blob_repository::BlobRepository;
 use std::error::Error;
 use std::fmt::{Display, Formatter};
 use std::marker::PhantomData;
+use std::path::Path;
 
 pub trait ClientService {
     type Error: Error;
@@ -23,6 +26,7 @@ pub struct MainClientService<
     E: EncodingService,
     F: FileService,
 > {
+    user: UserIdentifier,
     backup_repository: B,
     blob_repository: L,
     encoding_service: PhantomData<E>,
@@ -63,7 +67,7 @@ impl<B: BackupRepository, L: BlobRepository, E: EncodingService, F: FileService>
                         .map_err(|e| MainClientServiceError::BackupRepositoryError(e.into()))?
                         .ok_or(MainClientServiceError::BackupNotFound)?; //TODO correct user handling
 
-                    let mut file_tree_blob = self
+                    let mut old_file_tree_blob = self
                         .blob_repository
                         .fetch_blob(
                             backup
@@ -74,19 +78,50 @@ impl<B: BackupRepository, L: BlobRepository, E: EncodingService, F: FileService>
                         )
                         .await
                         .map_err(|e| MainClientServiceError::BlobRepositoryError(e.into()))?;
-                    let file_tree_blob = file_tree_blob
+                    let old_file_tree_data = old_file_tree_blob
                         .read_to_eof()
                         .await
                         .map_err(|e| MainClientServiceError::BlobRepositoryError(e.into()))?;
-                    let file_tree: FileTreeNode = E::decode(file_tree_blob.as_ref())
+                    let old_file_tree: FileTreeNode = E::decode(old_file_tree_data.as_ref())
                         .map_err(|e| MainClientServiceError::DecodeError(e.into()))?;
+                    drop(old_file_tree_blob);
+                    drop(old_file_tree_data);
 
-                    let diffs = F::compare_to_file_tree(backup_root.as_path(), &file_tree)
-                        .await
-                        .map_err(|e| MainClientServiceError::FileServiceError(e.into()))?;
-                    todo!()
+                    let new_file_tree = F::generate_file_tree(
+                        backup_root.as_path(),
+                        self.hash_service.preferred_hasher().as_ref(),
+                        &self.user,
+                    )
+                    .await
+                    .map_err(|e| MainClientServiceError::FileServiceError(e.into()))?;
+
+                    self.resolve_diffs(new_file_tree, old_file_tree, backup_root.as_path());
+                    Ok(())
                 }
             },
+        }
+    }
+}
+
+impl<B: BackupRepository, L: BlobRepository, E: EncodingService, F: FileService>
+    MainClientService<B, L, E, F>
+{
+    pub fn resolve_diffs(
+        &self,
+        current_state: FileTreeNode,
+        expected_state: FileTreeNode,
+        root: &Path,
+    ) {
+        let diffs = expected_state.diff_to(&current_state, root.into());
+
+        for diff in diffs {
+            todo!();
+            match diff.diff_type {
+                FileTreeDiffType::Created => {}
+                FileTreeDiffType::Updated => {}
+                FileTreeDiffType::Deleted => {}
+                FileTreeDiffType::ChangedType => {}
+            }
         }
     }
 }

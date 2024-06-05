@@ -4,12 +4,9 @@ use guardian_backup_domain::hash_service::{Hasher, PendingHash, PendingHashExt};
 use guardian_backup_domain::model::blobs::blob_identifier::BlobIdentifier;
 use guardian_backup_domain::model::files::directory_metadata::DirectoryMetadata;
 use guardian_backup_domain::model::files::file_metadata::FileMetadata;
-use guardian_backup_domain::model::files::file_tree::{
-    FileTreeDiff, FileTreeDiffType, FileTreeNode,
-};
+use guardian_backup_domain::model::files::file_tree::FileTreeNode;
 use guardian_backup_domain::model::user_identifier::UserIdentifier;
-use std::iter::{empty, once};
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::time::UNIX_EPOCH;
 
 pub struct TokioFileService {}
@@ -71,74 +68,5 @@ impl FileService for TokioFileService {
         }
 
         panic!("FS entries are always either files or directories (symlinks are traversed)")
-    }
-
-    async fn compare_to_file_tree(
-        path: &Path,
-        file_tree_node: &FileTreeNode,
-    ) -> Result<Box<dyn Iterator<Item = FileTreeDiff>>, Self::Error> {
-        match file_tree_node {
-            FileTreeNode::File {
-                name,
-                blob,
-                metadata,
-            } => {
-                let current_fs_path = path.join(name);
-                if !tokio::fs::try_exists(current_fs_path.as_path())
-                    .await
-                    .unwrap_or(false)
-                {
-                    return Ok(Box::new(once(FileTreeDiff {
-                        diff_type: FileTreeDiffType::Created,
-                        node: file_tree_node.clone(),
-                        location: path.into(),
-                    })));
-                }
-                let current_fs_file = tokio::fs::metadata(current_fs_path.as_path()).await?;
-                if current_fs_file
-                    .modified()?
-                    .duration_since(UNIX_EPOCH)
-                    .unwrap()
-                    .as_millis() as u64
-                    != metadata.last_modified
-                {
-                    return Ok(Box::new(once(FileTreeDiff {
-                        diff_type: FileTreeDiffType::Updated,
-                        node: file_tree_node.clone(),
-                        location: path.into(),
-                    })));
-                } else {
-                    return Ok(Box::new(empty()));
-                }
-            }
-            FileTreeNode::Directory {
-                name,
-                metadata,
-                children,
-            } => {
-                let dir_path = path.join(name);
-
-                if !tokio::fs::try_exists(dir_path.as_path()).await? {
-                    return Ok(Box::new(once(FileTreeDiff {
-                        diff_type: FileTreeDiffType::Created,
-                        node: file_tree_node.clone(),
-                        location: path.into(),
-                    })));
-                }
-
-                let mut res = vec![];
-                for child in children {
-                    res.push(
-                        Box::pin(Self::compare_to_file_tree(dir_path.as_path(), child)).await?,
-                    );
-                }
-                let res = res.into_iter().map(|e| e).flatten();
-
-                return Ok(Box::new(res));
-            }
-            FileTreeNode::SymbolicLink { .. } => {
-                todo!()
-            }
-        }
     }
 }

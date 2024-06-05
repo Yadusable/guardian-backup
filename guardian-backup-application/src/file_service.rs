@@ -16,11 +16,6 @@ pub trait FileService {
         hasher: &dyn Hasher<PendingHash = Box<dyn PendingHash>>,
         user: &UserIdentifier,
     ) -> Result<FileTreeNode, Self::Error>;
-
-    async fn compare_to_file_tree(
-        path: &Path,
-        file_tree_node: &FileTreeNode,
-    ) -> Result<Box<dyn Iterator<Item = FileTreeDiff>>, Self::Error>;
 }
 
 pub trait File {
