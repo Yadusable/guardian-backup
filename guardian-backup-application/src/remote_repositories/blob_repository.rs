@@ -11,6 +11,12 @@ pub struct RemoteBlobRepository<C: ConnectionClientInterface> {
     connectivity_service: C,
 }
 
+impl<C: ConnectionClientInterface> RemoteBlobRepository<C> {
+    pub fn new(connectivity_service: C) -> Self {
+        Self { connectivity_service }
+    }
+}
+
 impl<C: ConnectionClientInterface> BlobRepository for RemoteBlobRepository<C> {
     type Error = RemoteBlobRepositoryError;
 

@@ -10,6 +10,14 @@ pub struct RemoteBackupRepository<C: ConnectionClientInterface> {
     connection_interface: C,
 }
 
+impl<C: ConnectionClientInterface> RemoteBackupRepository<C> {
+    pub fn new(connection_interface: C) -> Self {
+        Self {
+            connection_interface,
+        }
+    }
+}
+
 impl<C: ConnectionClientInterface> BackupRepository for RemoteBackupRepository<C> {
     type Error = C::Error;
 
