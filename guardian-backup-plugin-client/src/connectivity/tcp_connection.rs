@@ -69,10 +69,13 @@ impl TcpConnection {
 impl ConnectionClientInterface for TcpConnection {
     type Error = TcpConnectivityError;
 
-    async fn send_request(&mut self, command: &Call) -> Result<impl IncomingResponse, Self::Error> {
+    async fn send_request(
+        &mut self,
+        command: Call,
+    ) -> Result<impl IncomingResponse + 'static, Self::Error> {
         let mut stream = BufStream::new(TcpStream::connect(self.addr).await?);
 
-        self.send_request_internal(&mut stream, command).await?;
+        self.send_request_internal(&mut stream, &command).await?;
         stream.write_u64(0).await?; // indicate zero sized blob
         stream.flush().await?;
 
@@ -111,6 +114,10 @@ impl IncomingResponse for IncomingTcpResponse {
 
     fn inner(&self) -> &Response {
         &self.response
+    }
+
+    fn into_inner(self) -> Response {
+        self.response
     }
 
     async fn receive_blob(mut self) -> Result<impl BlobFetch, Self::Error> {
@@ -197,7 +204,7 @@ mod tests {
 
         let mut client = TcpConnection::new(server_socket);
 
-        let response = client.send_request(&call).await.unwrap();
+        let response = client.send_request(call).await.unwrap();
         assert_eq!(response.inner(), &Response::Successful);
         response
             .receive_blob()
@@ -273,7 +280,7 @@ mod tests {
 
         let mut client = TcpConnection::new(server_socket);
 
-        let response = client.send_request(&call).await.unwrap();
+        let response = client.send_request(call).await.unwrap();
         assert_eq!(response.inner(), &Response::Successful);
 
         let mut blob = response.receive_blob().await.unwrap();

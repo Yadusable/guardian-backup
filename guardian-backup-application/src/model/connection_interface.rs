@@ -6,8 +6,11 @@ use std::fmt::Debug;
 use std::future::Future;
 
 pub trait ConnectionClientInterface {
-    type Error;
-    async fn send_request(&mut self, command: &Call) -> Result<impl IncomingResponse, Self::Error>;
+    type Error: std::error::Error + 'static;
+    async fn send_request(
+        &mut self,
+        command: Call,
+    ) -> Result<impl IncomingResponse + 'static, Self::Error>;
     async fn send_request_with_blob(
         &mut self,
         command: &Call,
@@ -18,7 +21,8 @@ pub trait ConnectionClientInterface {
 pub trait IncomingResponse: Debug {
     type Error: std::error::Error;
     fn inner(&self) -> &Response;
-    async fn receive_blob(self) -> Result<impl BlobFetch, Self::Error>;
+    fn into_inner(self) -> Response;
+    async fn receive_blob(self) -> Result<impl BlobFetch + 'static, Self::Error>;
 }
 
 pub trait ConnectionServerInterface {

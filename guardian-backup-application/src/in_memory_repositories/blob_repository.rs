@@ -48,7 +48,7 @@ impl BlobRepository for InMemoryBlobRepository {
             .map(|_| ())
     }
 
-    async fn fetch_blob(&self, blob: &BlobIdentifier) -> Result<impl BlobFetch, Self::Error> {
+    async fn fetch_blob(&mut self, blob: &BlobIdentifier) -> Result<impl BlobFetch, Self::Error> {
         Ok(InMemoryBlobFetch {
             data: self
                 .blobs

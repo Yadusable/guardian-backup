@@ -1,5 +1,5 @@
 use crate::model::client_model::{ClientBackupCommand, ClientCommand, ClientSubcommand};
-use crate::model::connection_interface::UnhandledIncomingCall;
+use std::convert::Infallible;
 
 pub trait ClientService {
     type Error: std::error::Error;
@@ -16,7 +16,7 @@ impl MainClientService {
 }
 
 impl ClientService for MainClientService {
-    type Error = ();
+    type Error = Infallible;
 
     async fn handle_command(&mut self, command: ClientCommand) -> Result<(), Self::Error> {
         match command.subcommand {

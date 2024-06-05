@@ -10,5 +10,5 @@ pub trait BlobRepository {
         blob: impl BlobFetch,
     ) -> Result<(), Self::Error>;
     async fn delete_blob(&mut self, id: &BlobIdentifier) -> Result<(), Self::Error>;
-    async fn fetch_blob(&self, id: &BlobIdentifier) -> Result<impl BlobFetch, Self::Error>;
+    async fn fetch_blob(&mut self, id: &BlobIdentifier) -> Result<impl BlobFetch, Self::Error>;
 }

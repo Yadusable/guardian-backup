@@ -6,8 +6,9 @@ use guardian_backup_application::client_service::{ClientService, MainClientServi
 mod cli;
 mod connectivity;
 
-fn main() {
+#[tokio::main(flavor = "current_thread")]
+async fn main() {
     let cli = cli::Cli::parse();
     let mut client_service = MainClientService::new();
-    client_service.handle_command(cli.into()).unwrap();
+    client_service.handle_command(cli.into()).await.unwrap();
 }

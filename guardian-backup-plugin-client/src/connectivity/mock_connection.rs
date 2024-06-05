@@ -14,12 +14,12 @@ use std::fmt::{Display, Formatter};
 pub struct MockConnection();
 
 impl ConnectionClientInterface for MockConnection {
-    type Error = ();
+    type Error = Infallible;
 
     async fn send_request(
         &mut self,
-        _command: &Call,
-    ) -> Result<impl IncomingResponse, Self::Error> {
+        _command: Call,
+    ) -> Result<impl IncomingResponse + 'static, Self::Error> {
         Ok(MockIncomingResponse {
             response: Response::Successful,
             blob: None,
@@ -49,6 +49,10 @@ impl IncomingResponse for MockIncomingResponse {
 
     fn inner(&self) -> &Response {
         &self.response
+    }
+
+    fn into_inner(self) -> Response {
+        self.response
     }
 
     async fn receive_blob(self) -> Result<impl BlobFetch, Self::Error> {

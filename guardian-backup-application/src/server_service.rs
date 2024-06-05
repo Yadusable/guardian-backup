@@ -76,7 +76,7 @@ impl<B: BackupRepository, L: BlobRepository> MainServerService<B, L> {
                     .get_backups(call.user())
                     .await
                     .map_err(|e| BackupRepositoryError(e.into()))?;
-                call.answer(Response::BackupList(backups.cloned().collect()))
+                call.answer(Response::BackupList(backups.collect()))
                     .await
                     .map_err(|e| ResponseError(e.into()))?;
             }
@@ -84,7 +84,7 @@ impl<B: BackupRepository, L: BlobRepository> MainServerService<B, L> {
             Call::PatchBackup(mut backup) => {
                 let origin = self
                     .backup_repository
-                    .take_backup_by_id(backup.id(), call.user())
+                    .get_backup_by_id(backup.id(), call.user())
                     .await
                     .map_err(|e| BackupRepositoryError(e.into()))?
                     .ok_or_else(|| BackupIdNotFound(backup.id().clone()))?;
@@ -92,7 +92,7 @@ impl<B: BackupRepository, L: BlobRepository> MainServerService<B, L> {
                 backup.merge_snapshots(origin.into_snapshots());
 
                 self.backup_repository
-                    .create_backup(call.user(), backup)
+                    .update_backup(backup, call.user())
                     .await
                     .map_err(|e| BackupRepositoryError(e.into()))?;
 
