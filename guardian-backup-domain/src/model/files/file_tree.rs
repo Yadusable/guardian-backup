@@ -12,7 +12,7 @@ pub enum FileTreeNode {
         blob: BlobIdentifier,
         metadata: FileMetadata,
     },
-    Directories {
+    Directory {
         name: OsString,
         metadata: DirectoryMetadata,
         children: Vec<FileTreeNode>,

@@ -1,6 +1,8 @@
-use guardian_backup_domain::hash_service::Hasher;
+use guardian_backup_domain::hash_service::{Hasher, PendingHash};
+use guardian_backup_domain::model::blobs::blob_fetch::BlobFetch;
 use guardian_backup_domain::model::files::file_hash::FileHash;
 use guardian_backup_domain::model::files::file_tree::{FileTreeDiff, FileTreeNode};
+use guardian_backup_domain::model::user_identifier::UserIdentifier;
 use std::error::Error;
 use std::path::Path;
 
@@ -9,6 +11,11 @@ pub trait FileService {
     type Error: Error + 'static;
 
     async fn get_file(path: &Path) -> Result<Self::File, Self::Error>;
+    async fn generate_file_tree(
+        path: &Path,
+        hasher: &dyn Hasher<PendingHash = Box<dyn PendingHash>>,
+        user: &UserIdentifier,
+    ) -> Result<FileTreeNode, Self::Error>;
 
     async fn compare_to_file_tree(
         path: &Path,
