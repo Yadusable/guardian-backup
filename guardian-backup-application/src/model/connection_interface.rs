@@ -34,9 +34,12 @@ pub trait UnhandledIncomingCall: IncomingCall {
 
 pub trait IncomingCall {
     type Error: 'static + std::error::Error;
-    fn answer(self, response: Response) -> impl Future<Output = Result<(), Self::Error>> + Send;
+    fn answer(
+        &mut self,
+        response: Response,
+    ) -> impl Future<Output = Result<(), Self::Error>> + Send;
     fn answer_with_blob(
-        self,
+        &mut self,
         response: Response,
         blob_data: impl BlobFetch,
     ) -> impl Future<Output = Result<(), Self::Error>> + Send;

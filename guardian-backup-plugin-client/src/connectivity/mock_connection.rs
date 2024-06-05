@@ -6,7 +6,6 @@ use guardian_backup_application::model::connection_interface::{
     ConnectionClientInterface, IncomingResponse,
 };
 use guardian_backup_application::model::response::Response;
-use guardian_backup_application::model::response::Response::BackupCreated;
 use guardian_backup_domain::model::blobs::blob_fetch::BlobFetch;
 use std::convert::Infallible;
 use std::error::Error;
@@ -22,7 +21,7 @@ impl ConnectionClientInterface for MockConnection {
         _command: &Call,
     ) -> Result<impl IncomingResponse, Self::Error> {
         Ok(MockIncomingResponse {
-            response: BackupCreated,
+            response: Response::Successful,
             blob: None,
         })
     }
@@ -33,7 +32,7 @@ impl ConnectionClientInterface for MockConnection {
         _blob: impl BlobFetch,
     ) -> Result<impl IncomingResponse, Self::Error> {
         Ok(MockIncomingResponse {
-            response: BackupCreated,
+            response: Response::Successful,
             blob: None,
         })
     }

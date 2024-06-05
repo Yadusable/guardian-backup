@@ -192,13 +192,13 @@ mod tests {
                 .err()
                 .expect("Expected to not receive any blob");
 
-            incoming.answer(Response::BackupCreated).await.unwrap();
+            incoming.answer(Response::Successful).await.unwrap();
         });
 
         let mut client = TcpConnection::new(server_socket);
 
         let response = client.send_request(&call).await.unwrap();
-        assert_eq!(response.inner(), &Response::BackupCreated);
+        assert_eq!(response.inner(), &Response::Successful);
         response
             .receive_blob()
             .await
@@ -225,7 +225,7 @@ mod tests {
             assert_eq!(blob.read_to_eof().await.unwrap().as_ref(), test_blob);
 
             drop(blob);
-            incoming.answer(Response::BackupCreated).await.unwrap();
+            incoming.answer(Response::Successful).await.unwrap();
         });
 
         let mut client = TcpConnection::new(server_socket);
@@ -234,7 +234,7 @@ mod tests {
             .send_request_with_blob(&call, InMemoryBlobFetch::new(test_blob.into()))
             .await
             .unwrap();
-        assert_eq!(response.inner(), &Response::BackupCreated);
+        assert_eq!(response.inner(), &Response::Successful);
         response
             .receive_blob()
             .await
@@ -264,7 +264,7 @@ mod tests {
 
             incoming
                 .answer_with_blob(
-                    Response::BackupCreated,
+                    Response::Successful,
                     InMemoryBlobFetch::new(test_blob.into()),
                 )
                 .await
@@ -274,7 +274,7 @@ mod tests {
         let mut client = TcpConnection::new(server_socket);
 
         let response = client.send_request(&call).await.unwrap();
-        assert_eq!(response.inner(), &Response::BackupCreated);
+        assert_eq!(response.inner(), &Response::Successful);
 
         let mut blob = response.receive_blob().await.unwrap();
         assert_eq!(blob.read_to_eof().await.unwrap().as_ref(), test_blob);
