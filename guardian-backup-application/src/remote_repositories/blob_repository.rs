@@ -13,7 +13,9 @@ pub struct RemoteBlobRepository<C: ConnectionClientInterface> {
 
 impl<C: ConnectionClientInterface> RemoteBlobRepository<C> {
     pub fn new(connectivity_service: C) -> Self {
-        Self { connectivity_service }
+        Self {
+            connectivity_service,
+        }
     }
 }
 

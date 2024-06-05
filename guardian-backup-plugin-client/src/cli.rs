@@ -1,6 +1,9 @@
 use clap::{Parser, Subcommand};
+use guardian_backup_application::model::client_model::{
+    ClientBackupCommand, ClientCommand, ClientSubcommand,
+};
+use guardian_backup_domain::model::backup::backup::BackupId;
 use std::path::PathBuf;
-use guardian_backup_application::model::client_model::{ClientBackupCommand, ClientCommand, ClientSubcommand};
 
 #[derive(Parser)]
 pub struct Cli {
@@ -60,31 +63,38 @@ pub enum BackupCommand {
     },
     /// Restore your files from a backup
     Restore {
-        /// Restore the most recent backup in the specified path
+        /// Restore into the specified path
         #[arg(short, long)]
-        backup_root: PathBuf,
+        file_root: PathBuf,
+        /// Select the most recent [guardian_backup_domain::model::backup::snapshot::Snapshot] of the [BackupId]
+        #[arg(short, long)]
+        backup_id: BackupId,
     },
 }
 
 impl From<Cli> for ClientCommand {
     fn from(value: Cli) -> Self {
         match value {
-            Cli { entity_type } => {
-                ClientCommand{ subcommand: entity_type.into()}
-            }
+            Cli { entity_type } => ClientCommand {
+                subcommand: entity_type.into(),
+            },
         }
     }
 }
 
-impl From<EntityType> for ClientSubcommand{
+impl From<EntityType> for ClientSubcommand {
     fn from(value: EntityType) -> Self {
         match value {
-            EntityType::Server { url, user_name, password } => {
-                ClientSubcommand::Server {url, user_name, password }
-            }
-            EntityType::Backup(inner) => {
-                ClientSubcommand::Backup (inner.into())
-            }
+            EntityType::Server {
+                url,
+                user_name,
+                password,
+            } => ClientSubcommand::Server {
+                url,
+                user_name,
+                password,
+            },
+            EntityType::Backup(inner) => ClientSubcommand::Backup(inner.into()),
         }
     }
 }
@@ -92,15 +102,27 @@ impl From<EntityType> for ClientSubcommand{
 impl From<BackupCommand> for ClientBackupCommand {
     fn from(value: BackupCommand) -> Self {
         match value {
-            BackupCommand::Auto { backup_root, retention_period } => {
-                ClientBackupCommand::Auto {backup_root, retention_period}
-            }
-            BackupCommand::Create { backup_root, retention_period } => {
-                ClientBackupCommand::Create {backup_root, retention_period }
-            }
-            BackupCommand::Restore { backup_root } => {
-                ClientBackupCommand::Restore {backup_root}
-            }
+            BackupCommand::Auto {
+                backup_root,
+                retention_period,
+            } => ClientBackupCommand::Auto {
+                backup_root,
+                retention_period,
+            },
+            BackupCommand::Create {
+                backup_root,
+                retention_period,
+            } => ClientBackupCommand::Create {
+                backup_root,
+                retention_period,
+            },
+            BackupCommand::Restore {
+                file_root,
+                backup_id,
+            } => ClientBackupCommand::Restore {
+                backup_root: file_root,
+                id: backup_id,
+            },
         }
     }
 }
