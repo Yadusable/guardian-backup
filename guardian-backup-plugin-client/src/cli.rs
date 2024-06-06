@@ -1,6 +1,8 @@
 use clap::{Parser, Subcommand};
+use guardian_backup_application::model::client_model::{
+    ClientBackupCommand, ClientCommand, ClientSubcommand,
+};
 use std::path::PathBuf;
-use guardian_backup_application::model::client_model::{ClientBackupCommand, ClientCommand, ClientSubcommand};
 
 #[derive(Parser)]
 pub struct Cli {
@@ -42,49 +44,58 @@ enum ServerCommands {
 pub enum BackupCommand {
     /// Set rules for automated backup
     Auto {
-        /// Set path which will be backed up
+        /// Create a scheduled Backup
         #[arg(short, long)]
         backup_root: PathBuf,
-        /// Set how long the backup should be saved (e.g. 30d)
+        /// Set how long a snapshot should be saved (e.g. 30d)
         #[arg(short, long)]
         retention_period: String,
     },
-    /// Create a backup and save it to the current server
+    /// Create a backup and save a snapshot to the current server
     Create {
         /// Set path which will be backed up
         #[arg(short, long)]
-        backup_root: Option<PathBuf>,
-        /// Set how long the backup should be saved (e.g. 30d)
+        backup_root: PathBuf,
+        /// Set how long the backup should be saved (e.g. "3d12h"); default is ~30d
         #[arg(short, long)]
         retention_period: Option<String>,
+        /// Set a unique name for the backup to be displayed with
+        #[arg(short, long)]
+        name: String,
     },
-    /// Restore your files from a backup
+    /// Restore your files from a snapshot
     Restore {
         /// Restore the most recent backup in the specified path
         #[arg(short, long)]
         backup_root: PathBuf,
     },
+    /// List all Backups on the server
+    List {},
 }
 
 impl From<Cli> for ClientCommand {
     fn from(value: Cli) -> Self {
         match value {
-            Cli { entity_type } => {
-                ClientCommand{ subcommand: entity_type.into()}
-            }
+            Cli { entity_type } => ClientCommand {
+                subcommand: entity_type.into(),
+            },
         }
     }
 }
 
-impl From<EntityType> for ClientSubcommand{
+impl From<EntityType> for ClientSubcommand {
     fn from(value: EntityType) -> Self {
         match value {
-            EntityType::Server { url, user_name, password } => {
-                ClientSubcommand::Server {url, user_name, password }
-            }
-            EntityType::Backup(inner) => {
-                ClientSubcommand::Backup (inner.into())
-            }
+            EntityType::Server {
+                url,
+                user_name,
+                password,
+            } => ClientSubcommand::Server {
+                url,
+                user_name,
+                password,
+            },
+            EntityType::Backup(inner) => ClientSubcommand::Backup(inner.into()),
         }
     }
 }
@@ -92,15 +103,22 @@ impl From<EntityType> for ClientSubcommand{
 impl From<BackupCommand> for ClientBackupCommand {
     fn from(value: BackupCommand) -> Self {
         match value {
-            BackupCommand::Auto { backup_root, retention_period } => {
-                ClientBackupCommand::Auto {backup_root, retention_period}
-            }
-            BackupCommand::Create { backup_root, retention_period } => {
-                ClientBackupCommand::Create {backup_root, retention_period }
-            }
-            BackupCommand::Restore { backup_root } => {
-                ClientBackupCommand::Restore {backup_root}
-            }
+            BackupCommand::Auto {
+                backup_root,
+                retention_period,
+            } => ClientBackupCommand::Auto {
+                backup_root,
+                retention_period,
+            },
+            BackupCommand::Create {
+                backup_root,
+                retention_period,
+                name,
+            } => ClientBackupCommand::Create {
+                backup_root,
+                retention_period,
+            },
+            BackupCommand::Restore { backup_root } => ClientBackupCommand::Restore { backup_root },
         }
     }
 }

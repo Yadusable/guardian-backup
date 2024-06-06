@@ -6,15 +6,11 @@ use std::time::UNIX_EPOCH;
 #[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq)]
 pub struct Schedule {
     rules: Vec<ScheduleRule>,
-    last_execution: Timestamp,
 }
 
 impl Schedule {
-    pub fn new(rules: Vec<ScheduleRule>, last_execution: Timestamp) -> Self {
-        Self {
-            rules,
-            last_execution,
-        }
+    pub fn new(rules: Vec<ScheduleRule>) -> Self {
+        Self { rules }
     }
 
     pub fn rules(&self) -> &[ScheduleRule] {
@@ -33,22 +29,11 @@ impl Schedule {
         }
         Ok(())
     }
-
-    pub fn last_execution(&self) -> Timestamp {
-        self.last_execution
-    }
-
-    pub fn set_last_execution(&mut self, last_execution: Timestamp) {
-        self.last_execution = last_execution;
-    }
 }
 
 impl Default for Schedule {
     fn default() -> Self {
-        Self::new(
-            vec![],
-            Timestamp::from_milliseconds(UNIX_EPOCH.elapsed().unwrap().as_millis() as u64),
-        )
+        Self::new(vec![])
     }
 }
 

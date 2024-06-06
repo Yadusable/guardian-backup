@@ -6,7 +6,6 @@ use crate::server_service::ServerServiceError::{
 };
 use guardian_backup_domain::model::backup::backup::BackupId;
 use guardian_backup_domain::repositories::backup_repository::BackupRepository;
-use std::borrow::Cow;
 use std::error::Error;
 
 pub trait ServerService {

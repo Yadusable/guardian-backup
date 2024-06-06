@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-pub struct ClientCommand  {
+pub struct ClientCommand {
     pub subcommand: ClientSubcommand,
 }
 
@@ -33,10 +33,14 @@ pub enum ClientBackupCommand {
         backup_root: Option<PathBuf>,
         /// Set how long the backup should be saved (e.g. 30d)
         retention_period: Option<String>,
+        /// Set a unique name for the backup to be displayed with
+        name: String,
     },
     /// Restore your files from a backup
     Restore {
         /// Restore the most recent backup in the specified path
         backup_root: PathBuf,
     },
+    /// List all Backups on the server
+    List {},
 }

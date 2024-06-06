@@ -13,3 +13,4 @@ guardian-backup-domain = {path = "../guardian-backup-domain"}
 
 log = "0.4"
 serde = { version = "1.0.198", features = ["derive"] }
+regex = "1.10.4"
