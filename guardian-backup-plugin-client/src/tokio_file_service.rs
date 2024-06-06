@@ -22,7 +22,7 @@ impl FileService for TokioFileService {
 
     async fn generate_file_tree(
         path: &Path,
-        hasher: &dyn Hasher<PendingHashA = dyn PendingHashB>,
+        hasher: &dyn Hasher,
         user: &UserIdentifier,
     ) -> Result<FileTreeNode, Self::Error> {
         let metadata = tokio::fs::metadata(path).await?;

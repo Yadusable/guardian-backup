@@ -1,9 +1,14 @@
 use crate::encoding_service::EncodingService;
 use crate::file_service::File;
 use crate::file_service::FileService;
+use crate::in_memory_repositories::backup_repository::InMemoryBackupRepository;
 use crate::in_memory_repositories::blob_repository::InMemoryBlobFetch;
+use crate::in_memory_repositories::blob_repository::InMemoryBlobRepository;
 use crate::model::client_model::{ClientBackupCommand, ClientCommand, ClientSubcommand};
-use guardian_backup_domain::hash_service::{HashService, PendingHashB};
+use crate::model::mocks::mock_hash_service::MOCK_HASHER;
+use guardian_backup_domain::hash_service::HashService;
+use guardian_backup_domain::hash_service::Hasher;
+use guardian_backup_domain::hash_service::PendingHashB;
 use guardian_backup_domain::model::backup::backup::{Backup, BackupId};
 use guardian_backup_domain::model::backup::schedule::Schedule;
 use guardian_backup_domain::model::backup::schedule_rule::ScheduleRule;
@@ -12,9 +17,7 @@ use guardian_backup_domain::model::blobs::blob_fetch::BlobFetch;
 use guardian_backup_domain::model::blobs::blob_identifier::BlobIdentifier;
 use guardian_backup_domain::model::device_identifier::DeviceIdentifier;
 use guardian_backup_domain::model::duration::Duration;
-use guardian_backup_domain::model::files::file_tree::{
-    FileTreeDiff, FileTreeDiffType, FileTreeNode,
-};
+use guardian_backup_domain::model::files::file_tree::{FileTreeDiffType, FileTreeNode};
 use guardian_backup_domain::model::timestamp::Timestamp;
 use guardian_backup_domain::model::user_identifier::UserIdentifier;
 use guardian_backup_domain::repositories::backup_repository::BackupRepository;
@@ -26,6 +29,10 @@ use std::marker::PhantomData;
 use std::path::Path;
 use std::path::PathBuf;
 use std::str::FromStr;
+
+#[cfg(any(test, feature = "mocks"))]
+use crate::model::mocks::mock_encoder_service::MockEncoderService;
+use crate::model::mocks::mock_file_service::MockFileService;
 
 pub trait ClientService {
     type Error: Error;
@@ -50,8 +57,43 @@ pub struct MainClientService<
 impl<B: BackupRepository, L: BlobRepository, E: EncodingService, F: FileService>
     MainClientService<B, L, E, F>
 {
-    pub fn new() -> Self {
-        todo!()
+    pub fn new(
+        user: UserIdentifier,
+        backup_repository: B,
+        blob_repository: L,
+        encoding_service: PhantomData<E>,
+        file_service: PhantomData<F>,
+        hash_service: HashService,
+    ) -> Self {
+        Self {
+            user,
+            backup_repository,
+            blob_repository,
+            encoding_service,
+            file_service,
+            hash_service,
+        }
+    }
+}
+
+impl
+    MainClientService<
+        InMemoryBackupRepository,
+        InMemoryBlobRepository,
+        MockEncoderService,
+        MockFileService,
+    >
+{
+    #[cfg(any(test, feature = "mocks"))]
+    pub fn new_mock() -> Self {
+        MainClientService {
+            user: UserIdentifier::new("Mock".into()),
+            backup_repository: InMemoryBackupRepository::new(),
+            blob_repository: InMemoryBlobRepository::new(),
+            encoding_service: PhantomData::default(),
+            file_service: PhantomData::default(),
+            hash_service: HashService::new(vec![&MOCK_HASHER as &dyn Hasher]),
+        }
     }
 }
 
@@ -356,3 +398,13 @@ impl Display for CreateErrors {
 }
 
 impl Error for CreateErrors {}
+
+#[cfg(test)]
+mod tests {
+    use crate::client_service::MainClientService;
+
+    #[tokio::test]
+    async fn test_create_backup() {
+        let clientService = MainClientService::new_mock();
+    }
+}
