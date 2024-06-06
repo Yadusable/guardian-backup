@@ -120,7 +120,7 @@ impl From<BackupCommand> for ClientBackupCommand {
                 retention_period,
                 name,
             } => ClientBackupCommand::Create {
-                backup_root,
+                backup_root: Some(backup_root),
                 retention_period,
                 name,
             },
@@ -131,6 +131,9 @@ impl From<BackupCommand> for ClientBackupCommand {
                 backup_root: file_root,
                 id: backup_id,
             },
+            BackupCommand::List { .. } => {
+                todo!()
+            }
         }
     }
 }

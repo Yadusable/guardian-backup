@@ -1,10 +1,14 @@
 use guardian_backup_domain::hash_service::{Hasher, PendingHash};
 use guardian_backup_domain::model::files::file_hash::FileHash;
 
-pub struct MockHashService();
+pub struct MockHasher();
 
-impl Hasher for MockHashService {
+impl Hasher for MockHasher {
     type PendingHash = MockPendingHash;
+
+    fn preference(&self) -> i8 {
+        0
+    }
 
     fn can_compare_hash(&self, hash: &FileHash) -> bool {
         hash == &FileHash::Mock

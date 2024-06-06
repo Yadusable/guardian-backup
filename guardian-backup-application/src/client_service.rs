@@ -103,7 +103,7 @@ impl<B: BackupRepository, L: BlobRepository, E: EncodingService, F: FileService>
 
                     let new_file_tree = F::generate_file_tree(
                         backup_root.as_path(),
-                        self.hash_service.preferred_hasher().as_ref(),
+                        self.hash_service.preferred_hasher(),
                         &self.user,
                     )
                     .await

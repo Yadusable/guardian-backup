@@ -98,13 +98,13 @@ Da es sich bei der Art der Speicherung um ein Implementierungsdetail handelt ist
 ## Analyse Single-Responsibility-Principle (SRP)
 > jeweils eine Klasse als positives und negatives Beispiel für SRP;  jeweils UML der Klasse und Beschreibung der Aufgabe bzw. der Aufgaben und möglicher Lösungsweg des Negativ-Beispiels (inkl. UML)
 ### Positiv-Beispiel
-![UML-Diagramm](https://www.plantuml.com/plantuml/svg/hP2zQiCm58Nt-nHtR2dUIYcc6DT3eKENaYq48ylNYOYa6_G3SNxUFOuDnd5MR_gE3leEodqGBaIZ0PGDv1eX2GlDrGy5kSCp8BwX8oEKLNPRQh8lhtqME0WzOKUYdXpBm2LnqoLN091QU8-_zeyCk_Rn-GIhZbCi-FYrZf-R31Pn3ieLxnNFVVSkkHILEMZyzgsL_rtINmq6hqwKOlnu7-i3BJ9iDYb9BXcE2BC_UYxaPEjez0q0)
+![UML-Diagramm](https://www.plantuml.com/plantuml/svg/dOzFYy8m5CJl-HJlkClIsx8iHKhjGV3WHRo9b3HzrM2I9_a3LkrtjxHOQZtfBR_9C3ClTPvR7xHYqdYq5HS8cQ9YWLuSuCe0Vi2Yvj98iyyLcg_lJlFakHgnHLwEdhcd7AbgbOOn9XHt3fPcXPfi_HmVGT5o31cTPzlmlqlOkvtDes13HqcJzCw4DWQfJmhchZPYtIhTLv_dv0LZ27-_Wxsd3sPC1aJHBO41sUJ-LqEAfWnQtG40)
 
 Das Interface `BlobFetch`, bzw. die Implementierungen `InMemoryBlobFetch` und `TokioBlobFetch` sind dafür zuständig BLOBs zu repräsentieren.
 Dabei muss im Fall des `TokioBlobFetch` der BLOB selbst zu keinem Zeitpunk vollständig im Arbeitsspeicher vorliegen.
 Das SRP ist erfüllt, da es nur die Funktion des Lesens eines BLOBs implementiert.
 
-### Negativ-Beispiel (#solid-negative)
+### Negativ-Beispiel
 ![UML-Diagramm](https://www.plantuml.com/plantuml/svg/ROmn2a8n341tJv5H4I_WwEwY1oZvDMWmFwrfloBYtKqjYCDVGdXvBr6m5DWZwv7iJjOcHuBN0c030yRhb8DHJeLhikSMUCm2koy__72N9GqpgjC_qSqrN51FGe4rff7rxD5jebANgtvMUlZQNh9MCaK9lN3w_W00)  
 
 Die Klasse `MainServerService` ist dafür zuständig eingehende Anfragen zu bearbeiten. Dabei ist vor allem die Methode `internal_handle()` problematisch, da sie die Logik für alle Arten an Anfragen implementiert.
@@ -142,10 +142,9 @@ async fn internal_handle(
     }
 ```
 
-Dies könnte wie im [SOLID Negativ beispiel](#solid-negative) beschrieben durch das Auslagern der Logik in den `Command` selbst gelöst werden.
+Dies könnte wie im SOLID Negativ-Beispiel beschrieben durch das Auslagern der Logik in den `Command` selbst gelöst werden.
 Der verbesserte PseudoCode würde dann folgendermaßen aussehen:
 
-aktueller Pseudo-Code:
 ```rust
 async fn internal_handle(
         &mut self,
@@ -161,7 +160,18 @@ async fn internal_handle(
 > jeweils eine Klasse als positives und negatives Beispiel für entweder LSP oder ISP oder DIP);  jeweils UML der Klasse und Begründung, warum man hier das Prinzip erfüllt/nicht erfüllt wird
 > Anm.: es darf nur ein Prinzip ausgewählt werden; es darf NICHT z.B. ein positives Beispiel für LSP und ein negatives Beispiel für ISP genommen werden
 ### Positiv-Beispiel
+![UML-Diagramm](https://www.plantuml.com/plantuml/svg/dOzFYy8m5CJl-HJlkClIsx8iHKhjGV3WHRo9b3HzrM2I9_a3LkrtjxHOQZtfBR_9C3ClTPvR7xHYqdYq5HS8cQ9YWLuSuCe0Vi2Yvj98iyyLcg_lJlFakHgnHLwEdhcd7AbgbOOn9XHt3fPcXPfi_HmVGT5o31cTPzlmlqlOkvtDes13HqcJzCw4DWQfJmhchZPYtIhTLv_dv0LZ27-_Wxsd3sPC1aJHBO41sUJ-LqEAfWnQtG40)  
+Das Interface `BlobFetch` ist ein gutes Beispiel für eine gelungene Liskov-Substitution.
+Die Klassen `InMemoryBlobFetch` und `TokioBlobFetch` implementieren `BlobFetch` und erfüllen diesen Vertrag vollständig. Sie können also gegen einender ausgetauscht werden, ohne dass ein aufrufendes Modul eine Änderung des Verhaltens beobachten kann.
+
 ### Negativ-Beispiel
+![UML-Diagramm](https://www.plantuml.com/plantuml/svg/dP71QiCm38RlVWeTMuPVmB1HA3lqiDlkmN5LPgRAcQLqb6tllY2wh86CbVXaVdtohr_UYCQg_P5SPiLwY0bXMvWnQIwyfOoikx7ouM0uTw3d3k6nrb83YEv3GBi7azm54kHzK_6jHz7LUaPithE-D2sLThK6z-LSeYW2pwdxdM364kwlaLFMiyd6UR_4_BhLJodR2aVwWQ1Ymdp20P2kiA0LnhRBUsEMfv9U_mkpuqCaoYtXyWXcELsSzvyFVt-biybkfZU3RN-aRm00)  
+
+Das Interface `ConnectionClientInterface` wird von `TcpConnection` und `NockConnection` implementiert.
+Aus der Natur einer Mock-Implementation heraus, bricht `MockConnection` den in `ConnectionClientInterface` vereinbarten Vertrag, indem z.B. der Rückgabewert der Funktionen unabhängig von den Parametern dieser sind.
+So kann auf ein `Command::GetBlob` mit einer `Response::BackupList` zurückgegeben werden. Dies ist in einer Anwendung in welcher alle Komponenten sich verhalten wie spezifiziert nicht möglich. Eine `TcpConnection` kann also nicht einfach durch eine `MockConnection` ausgetauscht werden.
+
+Da dieses Verhalten im Rahmen von Unit-Tests gewünscht ist, wird hier kein wirklicher Lösungsvorschlag gegeben.
 
 ## Kapitel 4 - Weitere Prinzipien
 ### Analyse GRASP: Geringe Kopplung
@@ -177,20 +187,71 @@ async fn internal_handle(
 
 # Kapitel 5 - Unit Tests
 ## 10 Unit Tests
-> Nennung von 10 Unit-Tests und Beschreibung, was getestet wird
-Unit Test | Beschreibung | Klasse#Methode
--|-|-
+> Nennung von 10 Unit-Tests und Beschreibung, was getestet wird+
+
+Unit Test | Beschreibung
+-|-
+server::TcpConnection::test_receive_request | testet ob der Server eingehende `Command`s empfangen und richtig parsen kann
+server::TcpConnection::test_send_response | testet ob der Server ausgehende `Response`ses korrekt encoded und sendet
+server::TcpConnection::test_receive_blob | testet ob der Server bei eingehenden `Commands`s auch BLOBS korrekt empfangen kann
+server::TcpConnection::test_send_response_with_blob | testet ob der Server bei ausgehenden `Response`s BLOB korrekt senden kann 
+client::TcpConnection::test_send_request() | testet ob der Client `Command`s korrekt encoden und senden kann und ob Responses korrekt empfangen werden
+client::TcpConnection::test_send_request_blob() | testet ob der Client bei `Command`s BLOBs korrekt mitsenden kann und ob Responses korrekt empfangen werden
+client::TcpConnection::test_receive_blob() | testet ob der Client Responses mit BLOBs korrekt empfangen kann
 
 ## ATRIP: Automatic
 > Begründung/Erläuterung, wie ‘Automatic’ realisiert wurde
+
+Die Tests wurden mithilfe von Cargo tests umgesetzt.
+So können durch `sh cargo tests` automatisiert alle tests gestartet werden und Ergebnisse werden in der Konsole zusammengefasst.
+Eine integration in gängige IDEs ist hierdurch auch gegeben.
+Durch den Rückgabwert des Prozesses können die tests einfach in Pipelines eingebaut werden.
+
 ## ATRIP: Thorough
 > jeweils 1 positives und negatives Beispiel zu ‘Thorough’; jeweils Code-Beispiel, Analyse und Begründung, was professionell/nicht professionell ist
+
+### Positives Beispiel
+In `server::TcpConnection` wurde ‘Thorough’ getestet.
+Eine Verbindung kann nur `Command`s empfangen und `Request`s senden.
+Beide aktionen sind mit und ohne BLOB möglich. Es gibt also insgesamt nur vier mögliche Aktionen.
+Die Unit-Tests decken alle vier Fälle ab und sind damit ‘Thorough’.
+
+### Negatives Beispiel
+
+# fettes TODO
+
 ## ATRIP: Professional
 > jeweils 1 positives und negatives Beispiel zu ‘Professional’; jeweils Code-Beispiel, Analyse und Begründung, was professionell/nicht professionell ist
+
+### Positives Beispiel
+Als positives Beispiel dient `server::TcpConnection::test_receive_request()`.
+Die Presstonalität ist hier aus mehreren Gründen gegeben:
+1. Der Name beschreibt was die Funktion testet
+2. Bestehender Code wird wiederverwendet (send_call)
+3. Der Test testet tastsächliche Logik und Interaktion zwischen Modulen und ist damit sinnvoll.
+
+### Negatives Beispiel
+
+# fettes TODO
+
 ## Code Coverage
 > Code Coverage im Projekt analysieren und begründen
+
+# fettes TODO 
+
 ## Fakes und Mocks
 > Analyse und Begründung des Einsatzes von 2 Fake/Mock-Objekten; zusätzlich jeweils UML Diagramm der Klasse
+
+### Beispiel 1
+[UML_Diagramm](https://www.plantuml.com/plantuml/svg/SoWkIImgAStDuShCAqajIajCJbNmI2pEI2rIgEPI009jXPBAWbI5WDIybCoyT92KDHTKeg0eDIsrA3KlELL34ogKd9WNdvoVMv1Ob1gV0LIBa2XAJIo1YzLoSINd91ONA_Zc9sVJnJeaYtHrQ-oWVkHo0De3z3m0)
+
+Die Klasse `MockHasher` stellt eine Mock-Implementation des `Hasher`-Interfaces dar.
+Sie wurde erstellt damit Komponenten getestet werden können obwohl eine vollständige Implementation des Hasher-Interfaces noch nicht existierte.
+
+# TODO Wo Einsatz?
+
+### Beispiel 2
+
 
 # Kapitel 6 - Domain Driven Design
 ## Ubiquitous Language
