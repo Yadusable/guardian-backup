@@ -1,10 +1,10 @@
-use guardian_backup_domain::hash_service::{Hasher, PendingHash};
+use guardian_backup_domain::hash_service::{Hasher, PendingHashB};
 use guardian_backup_domain::model::files::file_hash::FileHash;
 
 pub struct MockHasher();
 
 impl Hasher for MockHasher {
-    type PendingHash = MockPendingHash;
+    type PendingHashA = MockPendingHash;
 
     fn preference(&self) -> i8 {
         0
@@ -14,14 +14,14 @@ impl Hasher for MockHasher {
         hash == &FileHash::Mock
     }
 
-    fn create_hash(&self) -> Self::PendingHash {
-        MockPendingHash()
+    fn create_hash(&self) -> Box<Self::PendingHashA> {
+        Box::new(MockPendingHash())
     }
 }
 
 pub struct MockPendingHash();
 
-impl PendingHash for MockPendingHash {
+impl PendingHashB for MockPendingHash {
     fn update(&mut self, _data: &[u8]) {}
 
     fn finalize(&self) -> FileHash {

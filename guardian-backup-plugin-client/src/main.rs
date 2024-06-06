@@ -5,6 +5,7 @@ use guardian_backup_application::client_service::{ClientService, MainClientServi
 
 mod cli;
 mod connectivity;
+mod tokio_file;
 mod tokio_file_service;
 
 #[tokio::main(flavor = "current_thread")]

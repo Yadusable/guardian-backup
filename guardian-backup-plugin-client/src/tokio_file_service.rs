@@ -1,6 +1,7 @@
 use crate::connectivity::tokio_blob_fetch::TokioBlobFetch;
+use crate::tokio_file::TokioFile;
 use guardian_backup_application::file_service::FileService;
-use guardian_backup_domain::hash_service::{Hasher, PendingHash, PendingHashExt};
+use guardian_backup_domain::hash_service::{Hasher, PendingHashB, PendingHashExt};
 use guardian_backup_domain::model::blobs::blob_identifier::BlobIdentifier;
 use guardian_backup_domain::model::files::directory_metadata::DirectoryMetadata;
 use guardian_backup_domain::model::files::file_metadata::FileMetadata;
@@ -12,16 +13,16 @@ use std::time::UNIX_EPOCH;
 pub struct TokioFileService {}
 
 impl FileService for TokioFileService {
-    type File = tokio::fs::File;
+    type File = TokioFile;
     type Error = tokio::io::Error;
 
     async fn get_file(path: &Path) -> Result<Self::File, Self::Error> {
-        tokio::fs::File::open(path).await
+        Ok(TokioFile::new(path.into()))
     }
 
     async fn generate_file_tree(
         path: &Path,
-        hasher: &dyn Hasher<PendingHash = Box<dyn PendingHash>>,
+        hasher: &dyn Hasher<PendingHashA = dyn PendingHashB>,
         user: &UserIdentifier,
     ) -> Result<FileTreeNode, Self::Error> {
         let metadata = tokio::fs::metadata(path).await?;

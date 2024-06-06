@@ -31,7 +31,7 @@ pub enum ClientBackupCommand {
     /// Create a backup and save it to the current server
     Create {
         /// Set path which will be backed up
-        backup_root: Option<PathBuf>,
+        backup_root: PathBuf,
         /// Set how long the backup should be saved (e.g. 30d)
         retention_period: Option<String>,
         /// Set a unique name for the backup to be displayed with

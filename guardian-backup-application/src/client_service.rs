@@ -1,11 +1,15 @@
 use crate::encoding_service::EncodingService;
+use crate::file_service::File;
 use crate::file_service::FileService;
+use crate::in_memory_repositories::blob_repository::InMemoryBlobFetch;
 use crate::model::client_model::{ClientBackupCommand, ClientCommand, ClientSubcommand};
-use guardian_backup_domain::hash_service::HashService;
+use guardian_backup_domain::hash_service::{HashService, PendingHashB};
 use guardian_backup_domain::model::backup::backup::{Backup, BackupId};
 use guardian_backup_domain::model::backup::schedule::Schedule;
 use guardian_backup_domain::model::backup::schedule_rule::ScheduleRule;
+use guardian_backup_domain::model::backup::snapshot::Snapshot;
 use guardian_backup_domain::model::blobs::blob_fetch::BlobFetch;
+use guardian_backup_domain::model::blobs::blob_identifier::BlobIdentifier;
 use guardian_backup_domain::model::device_identifier::DeviceIdentifier;
 use guardian_backup_domain::model::duration::Duration;
 use guardian_backup_domain::model::files::file_tree::{
@@ -70,7 +74,8 @@ impl<B: BackupRepository, L: BlobRepository, E: EncodingService, F: FileService>
                     retention_period,
                     name,
                 } => {
-                    create_backup(backup_root.unwrap(), retention_period, Box::from(name)).await;
+                    self.create_backup(backup_root, retention_period, Box::from(name))
+                        .await;
                     Ok(())
                 }
                 ClientBackupCommand::Restore { backup_root, id } => {
@@ -120,34 +125,116 @@ impl<B: BackupRepository, L: BlobRepository, E: EncodingService, F: FileService>
     }
 }
 
-async fn create_backup(backup_root: PathBuf, retention_period: Option<String>, name: Box<str>) {
-    let mut schedule = Schedule::new(Vec::new());
+impl<B: BackupRepository, L: BlobRepository, E: EncodingService, F: FileService>
+    MainClientService<B, L, E, F>
+{
+    async fn create_backup(
+        &mut self,
+        backup_root: PathBuf,
+        retention_period: Option<String>,
+        name: Box<str>,
+    ) -> Result<(), F::Error> {
+        let mut schedule = Schedule::new(Vec::new());
 
-    let mut ret_period = 2600000;
-    match retention_period {
-        None => {}
-        Some(_) => {
-            let seconds_unwrapped = &*retention_period.unwrap();
-            if let Ok(duration_seconds) = duration_to_seconds(seconds_unwrapped) {
-                ret_period = duration_seconds * 1000
+        let mut ret_period = 2600000;
+        match retention_period {
+            None => {}
+            Some(_) => {
+                let seconds_unwrapped = &*retention_period.unwrap();
+                if let Ok(duration_seconds) = duration_to_seconds(seconds_unwrapped) {
+                    ret_period = duration_seconds * 1000
+                }
             }
         }
+
+        schedule.add_rule(ScheduleRule::new(
+            Duration::Limited {
+                milliseconds: ret_period as u64,
+            },
+            Duration::Infinite,
+            Timestamp::now(),
+        ));
+
+        let snapshots = vec![];
+
+        let filetree = F::generate_file_tree(
+            backup_root.as_path(),
+            self.hash_service.preferred_hasher(),
+            &self.user,
+        )
+        .await?;
+
+        // encode file tree as Box<[u8]>
+        let file_tree_box = E::encode(&filetree);
+        let hasher = self.hash_service.preferred_hasher();
+        let mut hash = hasher.create_hash();
+        hash.update(&file_tree_box);
+        let hash = hash.finalize();
+        // insert encoded file tree as blob
+        let file_tree_blob = InMemoryBlobFetch::new(file_tree_box.into());
+
+        // insert all files in file tree to blob repository
+        let file_tree_blob_identifier = BlobIdentifier::new(hash, self.user.clone());
+        self.blob_repository
+            .insert_blob(file_tree_blob_identifier.clone(), file_tree_blob);
+
+        // create snapshot
+        let lifetime_limit;
+        match schedule.rules().get(0) {
+            None => lifetime_limit = None,
+            Some(rule_lifetime) => lifetime_limit = rule_lifetime.lifetime().get_duration(),
+        }
+
+        let mut blobs = vec![];
+        match self
+            .upload_to_repository_from_file_tree(&filetree, backup_root.clone())
+            .await
+        {
+            Ok(blob_vec) => blobs = blob_vec,
+            Err(_) => {}
+        }
+
+        let snapshot = Snapshot::new(
+            Timestamp::now(),
+            lifetime_limit.map(|e| Timestamp::from_now_in_millis(e)),
+            file_tree_blob_identifier,
+            blobs,
+        );
+
+        Backup::new(
+            BackupId::from_str(name.as_ref()).unwrap(),
+            DeviceIdentifier::default(),
+            schedule,
+            Box::from(backup_root),
+            snapshots,
+        );
+        Ok(())
     }
 
-    schedule.add_rule(ScheduleRule::new(
-        Duration::Limited {
-            milliseconds: ret_period as u64,
-        },
-        Duration::Infinite,
-        Timestamp::now(),
-    ));
-    Backup::new(
-        BackupId::from_str(name.as_ref()).unwrap(),
-        DeviceIdentifier::default(),
-        schedule,
-        Box::from(backup_root),
-        Vec::new(),
-    );
+    async fn upload_to_repository_from_file_tree(
+        &mut self,
+        file_tree_node: &FileTreeNode,
+        backup_root_path: PathBuf,
+    ) -> Result<Vec<BlobIdentifier>, Box<dyn Error>> {
+        let files = file_tree_node.iter(backup_root_path);
+        let mut associated_blobs = vec![];
+        for (path, file_node) in files {
+            if let FileTreeNode::File {
+                name,
+                blob: blob_identifier,
+                ..
+            } = file_node
+            {
+                let file = F::get_file(path.join(name).as_path()).await?;
+                let blob = file.get_as_blob().await?;
+                self.blob_repository
+                    .insert_blob(blob_identifier.clone(), blob)
+                    .await?;
+                associated_blobs.push(blob_identifier.clone())
+            }
+        }
+        Ok(associated_blobs)
+    }
 }
 
 fn duration_to_seconds(input: &str) -> Result<u32, DurationErrors> {
