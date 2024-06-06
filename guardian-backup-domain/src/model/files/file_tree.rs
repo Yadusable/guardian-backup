@@ -121,6 +121,23 @@ impl FileTreeNode {
             }
         }
     }
+
+    pub fn iter(&self, path: PathBuf) -> Box<dyn Iterator<Item = (PathBuf, &FileTreeNode)> + '_> {
+        match self {
+            FileTreeNode::File { name, .. } => Box::new(once((path.join(name), self))),
+            FileTreeNode::Directory { children, name, .. } => {
+                let dirpath = path.join(name);
+
+                Box::new(
+                    once((dirpath.clone(), self))
+                        .chain(children.iter().flat_map(move |e| e.iter(dirpath.clone()))),
+                )
+            }
+            FileTreeNode::SymbolicLink { .. } => {
+                unimplemented!()
+            }
+        }
+    }
 }
 
 pub struct FileTreeDiff {

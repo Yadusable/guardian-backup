@@ -21,4 +21,14 @@ impl Timestamp {
                 .as_millis() as u64,
         }
     }
+
+    pub fn from_now_in_millis(diff_in_millis: u64) -> Self {
+        Self {
+            milliseconds_since_epoch: SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .unwrap()
+                .as_millis() as u64
+                + diff_in_millis,
+        }
+    }
 }

@@ -131,6 +131,7 @@ impl From<BackupCommand> for ClientBackupCommand {
                 backup_root: file_root,
                 id: backup_id,
             },
+            BackupCommand::List { .. } => ClientBackupCommand::List {},
         }
     }
 }
