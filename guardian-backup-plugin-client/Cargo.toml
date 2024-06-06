@@ -17,7 +17,7 @@ guardian-backup-application = { path = "../guardian-backup-application" }
 guardian-backup-domain = { path = "../guardian-backup-domain" }
 
 
-tokio = { version = "1.37", features = ["macros", "io-util", "rt", "net", "rt-multi-thread"] }
+tokio = { version = "1.37", features = ["macros", "io-util", "rt", "net", "fs"] }
 ciborium = "0.2"
 
 log = "0.4"

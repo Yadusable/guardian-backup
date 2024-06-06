@@ -1,3 +1,4 @@
+use guardian_backup_domain::model::backup::backup::BackupId;
 use std::path::PathBuf;
 
 pub struct ClientCommand {
@@ -38,8 +39,10 @@ pub enum ClientBackupCommand {
     },
     /// Restore your files from a backup
     Restore {
-        /// Restore the most recent backup in the specified path
+        /// Restore into the specified path
         backup_root: PathBuf,
+        /// Select the most recent [guardian_backup_domain::model::backup::snapshot::Snapshot] of the [BackupId]
+        id: BackupId,
     },
     /// List all Backups on the server
     List {},

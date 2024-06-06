@@ -1,12 +1,16 @@
-use crate::model::hash_service::{HashService, PendingHash};
+use guardian_backup_domain::hash_service::{Hasher, PendingHash};
 use guardian_backup_domain::model::files::file_hash::FileHash;
 
 pub struct MockHashService();
 
-impl HashService for MockHashService {
+impl Hasher for MockHashService {
     type PendingHash = MockPendingHash;
 
-    fn create_hash() -> Self::PendingHash {
+    fn can_compare_hash(&self, hash: &FileHash) -> bool {
+        hash == &FileHash::Mock
+    }
+
+    fn create_hash(&self) -> Self::PendingHash {
         MockPendingHash()
     }
 }

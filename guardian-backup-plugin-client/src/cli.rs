@@ -2,6 +2,8 @@ use clap::{Parser, Subcommand};
 use guardian_backup_application::model::client_model::{
     ClientBackupCommand, ClientCommand, ClientSubcommand,
 };
+
+use guardian_backup_domain::model::backup::backup::BackupId;
 use std::path::PathBuf;
 
 #[derive(Parser)]
@@ -65,9 +67,12 @@ pub enum BackupCommand {
     },
     /// Restore your files from a snapshot
     Restore {
-        /// Restore the most recent backup in the specified path
+        /// Restore into the specified path
         #[arg(short, long)]
-        backup_root: PathBuf,
+        file_root: PathBuf,
+        /// Select the most recent [guardian_backup_domain::model::backup::snapshot::Snapshot] of the [BackupId]
+        #[arg(short, long)]
+        backup_id: BackupId,
     },
     /// List all Backups on the server
     List {},
@@ -117,8 +122,15 @@ impl From<BackupCommand> for ClientBackupCommand {
             } => ClientBackupCommand::Create {
                 backup_root,
                 retention_period,
+                name,
             },
-            BackupCommand::Restore { backup_root } => ClientBackupCommand::Restore { backup_root },
+            BackupCommand::Restore {
+                file_root,
+                backup_id,
+            } => ClientBackupCommand::Restore {
+                backup_root: file_root,
+                id: backup_id,
+            },
         }
     }
 }

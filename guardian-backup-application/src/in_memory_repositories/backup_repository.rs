@@ -8,36 +8,48 @@ pub struct InMemoryBackupRepository {
     backups: HashMap<UserIdentifier, HashMap<BackupId, Backup>>,
 }
 
+impl InMemoryBackupRepository {
+    pub fn new() -> Self {
+        InMemoryBackupRepository {
+            backups: HashMap::new(),
+        }
+    }
+}
+
 impl BackupRepository for InMemoryBackupRepository {
     type Error = Infallible;
 
     async fn get_backups(
-        &self,
+        &mut self,
         user: &UserIdentifier,
-    ) -> Result<Box<dyn Iterator<Item = &Backup> + '_>, Self::Error> {
+    ) -> Result<Box<dyn Iterator<Item = Backup> + '_>, Self::Error> {
         Ok(match self.backups.get(user) {
             None => Box::new(std::iter::Empty::default()),
-            Some(res) => Box::new(res.values()),
+            Some(res) => Box::new(res.values().cloned()),
         })
     }
 
     async fn get_backup_by_id(
-        &self,
-        id: &BackupId,
-        user: &UserIdentifier,
-    ) -> Result<Option<&Backup>, Self::Error> {
-        Ok(self.backups.get(user).and_then(|backups| backups.get(id)))
-    }
-
-    async fn take_backup_by_id(
         &mut self,
         id: &BackupId,
         user: &UserIdentifier,
     ) -> Result<Option<Backup>, Self::Error> {
         Ok(self
             .backups
+            .get(user)
+            .and_then(|backups| backups.get(id).cloned()))
+    }
+
+    async fn update_backup(
+        &mut self,
+        backup: Backup,
+        user: &UserIdentifier,
+    ) -> Result<(), Self::Error> {
+        self.backups
             .get_mut(user)
-            .and_then(|backups| backups.remove(id)))
+            .and_then(|e| e.insert(backup.id().clone(), backup));
+
+        Ok(())
     }
 
     async fn create_backup(

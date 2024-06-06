@@ -102,7 +102,7 @@ impl<CallHandled: COptional<Item = Call> + Send> IncomingTcpCall<CallHandled> {
 impl<CallHandled: COptional<Item = Call> + Send> IncomingCall for IncomingTcpCall<CallHandled> {
     type Error = TcpConnectivityError;
 
-    async fn answer(mut self, response: Response) -> Result<(), Self::Error> {
+    async fn answer(&mut self, response: Response) -> Result<(), Self::Error> {
         self.send_response(response).await?;
         self.tx.write_u64(0).await?; // Indicate a zero length blob
         self.tx.flush().await?;
@@ -110,7 +110,7 @@ impl<CallHandled: COptional<Item = Call> + Send> IncomingCall for IncomingTcpCal
     }
 
     async fn answer_with_blob(
-        mut self,
+        &mut self,
         response: Response,
         blob_data: impl BlobFetch,
     ) -> Result<(), Self::Error> {
@@ -275,13 +275,13 @@ mod tests {
         let mut server = TcpServerConnectivity::new(&server_config).await.unwrap();
         let mut client = send_call(server_config.bind_to).await;
 
-        let call = server.receive_request().await.unwrap();
+        let mut call = server.receive_request().await.unwrap();
 
-        call.answer(Response::BackupCreated).await.unwrap();
+        call.answer(Response::Successful).await.unwrap();
 
         let received_response = receive_response(&mut client).await;
 
-        assert_eq!(received_response, Response::BackupCreated);
+        assert_eq!(received_response, Response::Successful);
     }
 
     #[tokio::test]
@@ -305,17 +305,17 @@ mod tests {
         let mut server = TcpServerConnectivity::new(&server_config).await.unwrap();
         let mut client = send_call(server_config.bind_to).await;
 
-        let call = server.receive_request().await.unwrap();
+        let mut call = server.receive_request().await.unwrap();
 
         call.answer_with_blob(
-            Response::BackupCreated,
+            Response::Successful,
             InMemoryBlobFetch::new([127; 4096].into()),
         )
         .await
         .unwrap();
 
         let received_response = receive_response(&mut client).await;
-        assert_eq!(received_response, Response::BackupCreated);
+        assert_eq!(received_response, Response::Successful);
 
         let mut received_blob = receive_blob(client).await;
         let received_blob_data = received_blob.read_to_eof().await.unwrap();
