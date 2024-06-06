@@ -6,6 +6,10 @@ pub struct MockHashService();
 impl Hasher for MockHashService {
     type PendingHashA = MockPendingHash;
 
+    fn preference(&self) -> i8 {
+        0
+    }
+
     fn can_compare_hash(&self, hash: &FileHash) -> bool {
         hash == &FileHash::Mock
     }
