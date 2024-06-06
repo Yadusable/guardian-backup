@@ -104,7 +104,7 @@ Das Interface `BlobFetch`, bzw. die Implementierungen `InMemoryBlobFetch` und `T
 Dabei muss im Fall des `TokioBlobFetch` der BLOB selbst zu keinem Zeitpunk vollständig im Arbeitsspeicher vorliegen.
 Das SRP ist erfüllt, da es nur die Funktion des Lesens eines BLOBs implementiert.
 
-### Negativ-Beispiel {#solid-negative}
+### Negativ-Beispiel (#solid-negative)
 ![UML-Diagramm](https://www.plantuml.com/plantuml/svg/ROmn2a8n341tJv5H4I_WwEwY1oZvDMWmFwrfloBYtKqjYCDVGdXvBr6m5DWZwv7iJjOcHuBN0c030yRhb8DHJeLhikSMUCm2koy__72N9GqpgjC_qSqrN51FGe4rff7rxD5jebANgtvMUlZQNh9MCaK9lN3w_W00)  
 
 Die Klasse `MainServerService` ist dafür zuständig eingehende Anfragen zu bearbeiten. Dabei ist vor allem die Methode `internal_handle()` problematisch, da sie die Logik für alle Arten an Anfragen implementiert.
@@ -152,7 +152,7 @@ async fn internal_handle(
         call: &mut impl IncomingCall,
         call_variant: Call,
     ) -> Result<(), ServerServiceError> {
-        
+
         call_variant.handle(call.user())
     }
 ```
