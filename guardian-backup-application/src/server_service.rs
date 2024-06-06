@@ -158,7 +158,7 @@ impl Display for ServerServiceError {
             ResponseError(inner) => write!(f, "ResponseError({inner})"),
             BackupIdNotFound(inner) => write!(f, "BackupIdNotFound({inner})"),
             BlobFetchError(inner) => write!(f, "BlobFetchError({inner})"),
-            NoPermission => write!(f, ""),
+            NoPermission => write!(f, "NoPermission"),
         }
     }
 }

@@ -1,17 +1,37 @@
 use crate::model::blobs::blob_fetch::BlobFetch;
 use crate::model::files::file_hash::FileHash;
 
-pub struct HashService {}
+pub struct HashService {
+    supported_hashers: Vec<&'static dyn Hasher<PendingHash = Box<dyn PendingHash>>>,
+}
 
 impl HashService {
-    pub fn preferred_hasher(&self) -> Box<dyn Hasher<PendingHash = Box<dyn PendingHash>>> {
-        todo!()
+    pub fn preferred_hasher(&self) -> &'static dyn Hasher<PendingHash = Box<dyn PendingHash>> {
+        let preferred = *self
+            .supported_hashers
+            .iter()
+            .max_by_key(|e| e.preference())
+            .unwrap();
+
+        preferred
+    }
+
+    pub fn find_compatible_hasher(
+        &self,
+        hash: &FileHash,
+    ) -> &'static dyn Hasher<PendingHash = Box<dyn PendingHash>> {
+        *self
+            .supported_hashers
+            .iter()
+            .find(|e| e.can_compare_hash(hash))
+            .unwrap()
     }
 }
 
 pub trait Hasher {
     type PendingHash;
 
+    fn preference(&self) -> i8;
     fn can_compare_hash(&self, hash: &FileHash) -> bool;
     fn create_hash(&self) -> Self::PendingHash;
 }
