@@ -215,7 +215,7 @@ impl<B: BackupRepository, L: BlobRepository, E: EncodingService, F: FileService>
         let mut blobs = vec![file_tree_blob_identifier.clone()];
         blobs.append(
             &mut self
-                .upload_to_repository_from_file_tree(&filetree, backup_root.clone())
+                .insert_into_repository_from_file_tree(&filetree, backup_root.clone())
                 .await?,
         );
 
@@ -241,7 +241,7 @@ impl<B: BackupRepository, L: BlobRepository, E: EncodingService, F: FileService>
         Ok(())
     }
 
-    async fn upload_to_repository_from_file_tree(
+    async fn insert_into_repository_from_file_tree(
         &mut self,
         file_tree_node: &FileTreeNode,
         backup_root_path: PathBuf,
