@@ -2,13 +2,19 @@ use crate::model::blobs::blob_fetch::BlobFetch;
 use crate::model::files::file_hash::FileHash;
 
 pub struct HashService {
-    supported_hashers: Vec<&'static dyn Hasher<PendingHashA = dyn PendingHashB>>,
+    supported_hashers: Vec<&'static dyn Hasher>,
 }
 
 // pub async fn update_hash_with_blob<B: BlobFetch>(
 
 impl HashService {
-    pub fn preferred_hasher(&self) -> &'static dyn Hasher<PendingHashA = dyn PendingHashB> {
+    pub fn new(hasher: Vec<&'static dyn Hasher>) -> Self {
+        Self {
+            supported_hashers: hasher,
+        }
+    }
+
+    pub fn preferred_hasher(&self) -> &'static dyn Hasher {
         let preferred = *self
             .supported_hashers
             .iter()
@@ -18,10 +24,7 @@ impl HashService {
         preferred
     }
 
-    pub fn find_compatible_hasher(
-        &self,
-        hash: &FileHash,
-    ) -> &'static dyn Hasher<PendingHashA = dyn PendingHashB> {
+    pub fn find_compatible_hasher(&self, hash: &FileHash) -> &'static dyn Hasher {
         *self
             .supported_hashers
             .iter()
@@ -31,11 +34,9 @@ impl HashService {
 }
 
 pub trait Hasher {
-    type PendingHashA: PendingHashB + ?Sized;
-
     fn preference(&self) -> i8;
     fn can_compare_hash(&self, hash: &FileHash) -> bool;
-    fn create_hash(&self) -> Box<Self::PendingHashA>;
+    fn create_hash(&self) -> Box<dyn PendingHashB>;
 }
 
 pub trait PendingHashB {

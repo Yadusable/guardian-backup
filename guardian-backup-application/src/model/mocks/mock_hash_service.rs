@@ -3,9 +3,9 @@ use guardian_backup_domain::model::files::file_hash::FileHash;
 
 pub struct MockHasher();
 
-impl Hasher for MockHasher {
-    type PendingHashA = MockPendingHash;
+pub const MOCK_HASHER: MockHasher = MockHasher();
 
+impl Hasher for MockHasher {
     fn preference(&self) -> i8 {
         0
     }
@@ -14,7 +14,7 @@ impl Hasher for MockHasher {
         hash == &FileHash::Mock
     }
 
-    fn create_hash(&self) -> Box<Self::PendingHashA> {
+    fn create_hash(&self) -> Box<dyn PendingHashB> {
         Box::new(MockPendingHash())
     }
 }

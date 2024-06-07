@@ -14,7 +14,7 @@ pub trait FileService {
     async fn get_file(path: &Path) -> Result<Self::File, Self::Error>;
     async fn generate_file_tree(
         path: &Path,
-        hasher: &dyn Hasher<PendingHashA = dyn PendingHashB>,
+        hasher: &dyn Hasher,
         user: &UserIdentifier,
     ) -> Result<FileTreeNode, Self::Error>;
 

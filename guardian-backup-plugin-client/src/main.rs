@@ -3,6 +3,7 @@
 use clap::Parser;
 use guardian_backup_application::client_service::{ClientService, MainClientService};
 
+mod cbor_encoder_service;
 mod cli;
 mod connectivity;
 mod tokio_file;
