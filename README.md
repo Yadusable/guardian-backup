@@ -11,11 +11,11 @@ Benedikt Kuder
 
 > Was macht die Applikation? Wie funktioniert sie? Welches Problem löst sie/welchen Zweck hat sie?
 
-Bei Guardian-Backup handelt es sich um eine pseudeo-offline Backup-Lösung.
+Bei Guardian-Backup handelt es sich um eine pseudo-offline Backup-Lösung.
 Dabei erstellt ein Client ein Backup und lädt dieses auf den Server hoch.
 Der Client kann allerdings nur neue Backups erzeugen und keine löschen.
 Das Löschen von Backups wir durch eine Retention-Policy umgesetzt.
-Durch die Inhaltsaddressierung der einzelnen Dateien findet automatisch eine Deduplizierung statt.
+Durch die Inhaltsadressierung der einzelnen Dateien findet automatisch eine Deduplizierung statt.
 
 ## Wie startet man die Applikation?
 
@@ -35,7 +35,7 @@ cargo build --release --package guardian-backup-plugin-client --bin guardian-bac
 Das Server Binary wird wiederum mit folgendem Befehl erzeugt:
 
 ```sh 
-cargo build --release --package guardian-backup-plugin-client --bin guardian-backup-plugin-client
+cargo build --release --package guardian-backup-plugin-server --bin guardian-backup-plugin-server
 ```
 
 Die Artefakte befinden sich darauf in `target/release`
@@ -46,7 +46,33 @@ Starte zuerst den Server, indem du das Binary guardian-backup-server ausführst.
 
 Die Grundfunktionen können über folgende Befehle ausgeführt werden:
 
-# Ganz fettes TODO Benedikt
+#### Server starten
+
+Damit der Client funktioniert, muss zuerst der Server gestartet werden:
+
+```sh
+./target/release/guardian-backup-plugin-server
+```
+
+#### Backup Erstellen
+
+Um ein Backup zu erstellen, kann folgender Befehl genutzt werden:
+
+```sh
+./target/release/guardian-backup-plugin-client backup create --name <backup_id> --backup-root <Path to folder which should be backuped>
+```
+
+Beachte, dass der Server keine Backups persistiert. Ein Neustart des Servers löscht also alle bisher erstellten Backups.
+
+#### Backup Wiederherstellen
+
+Um ein Backup wiederherzustellen, kann folgender Befehl genutzt werden:
+
+```sh
+./target/release/guardian-backup-plugin-client backup restore --backup-id <backup_id> --file-root <Pfad wo das Backup wiederhergestellt werden soll>
+```
+
+Die Anwendung baut darauf die Differenz zwischen Dateisystem und Backup auf und behebt diese.
 
 ## Wie testet man die Applikation?
 
