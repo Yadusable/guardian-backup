@@ -318,17 +318,18 @@ Die starke Kopplung kann durch das Einführen von Interfaces aufgelöst werden:
 
 > Nennung von 10 Unit-Tests und Beschreibung, was getestet wird+
 
- Unit Test                                           | Beschreibung                                                                                                
------------------------------------------------------|-------------------------------------------------------------------------------------------------------------
- server::TcpConnection::test_receive_request         | testet, ob der Server eingehende `Command`s empfangen und richtig parsen kann                               
- server::TcpConnection::test_send_response           | testet, ob der Server ausgehende `Response`ses korrekt encoded und sendet                                   
- server::TcpConnection::test_receive_blob            | testet, ob der Server bei eingehenden `Commands`s auch BLOBS korrekt empfangen kann                         
- server::TcpConnection::test_send_response_with_blob | testet, ob der Server bei ausgehenden `Response`s BLOB korrekt senden kann                                  
- client::TcpConnection::test_send_request()          | testet, ob der Client `Command`s korrekt encoden und senden kann und ob Responses korrekt empfangen werden  
- client::TcpConnection::test_send_request_blob()     | testet, ob der Client bei `Command`s BLOBs korrekt mitsenden kann und ob Responses korrekt empfangen werden 
- client::TcpConnection::test_receive_blob()          | testet, ob der Client Responses mit BLOBs korrekt empfangen kann                                            
-
-# TODO ergänzen Karl
+ Unit Test                                                                                                        | Beschreibung                                                                                                                         
+------------------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------
+ server::TcpConnection::test_receive_request                                                                      | testet, ob der Server eingehende `Command`s empfangen und richtig parsen kann                                                        
+ server::TcpConnection::test_send_response                                                                        | testet, ob der Server ausgehende `Response`ses korrekt encoded und sendet                                                            
+ server::TcpConnection::test_receive_blob                                                                         | testet, ob der Server bei eingehenden `Commands`s auch BLOBS korrekt empfangen kann                                                  
+ server::TcpConnection::test_send_response_with_blob                                                              | testet, ob der Server bei ausgehenden `Response`s BLOB korrekt senden kann                                                           
+ client::TcpConnection::test_send_request()                                                                       | testet, ob der Client `Command`s korrekt encoden und senden kann und ob Responses korrekt empfangen werden                           
+ client::TcpConnection::test_send_request_blob()                                                                  | testet, ob der Client bei `Command`s BLOBs korrekt mitsenden kann und ob Responses korrekt empfangen werden                          
+ client::TcpConnection::test_receive_blob()                                                                       | testet, ob der Client Responses mit BLOBs korrekt empfangen kann                                                                     
+ guardian_backup_application::client_service::tests::test_if_create_backup_creates_backup()                       | Testet, ob der Client Backups speichert, wenn ein `Backup create command` entgegen genommen wird                                     
+ guardian_backup_application::client_service::tests::test_if_create_backup_contains_right_backup()                | Testet, ob der Client das richtige Backup (ohne retention policy) speichert, wenn ein `Backup create command` entgegen genommen wird 
+ guardian_backup_application::client_service::tests::test_if_create_backup_contains_right_backup_with_retention() | Testet, ob der Client das richtige Backup (mit retention policy) speichert, wenn ein `Backup create command` entgegen genommen wird  
 
 ## ATRIP: Automatic
 
@@ -463,7 +464,20 @@ Die Professionalität ist hier aus mehreren Gründen gegeben:
 2. Bestehender Code wird wiederverwendet (send_call)
 3. Der Test testet tatsächliche Logik und Interaktion zwischen Modulen und ist damit sinnvoll.
 
-# todo codebeispiel Karl
+```rust
+#[tokio::test]
+async fn test_receive_request() {
+    let server_config = ServerConfig::test_config();
+    let mut server = TcpServerConnectivity::new(&server_config).await.unwrap();
+    send_call(server_config.bind_to).await;
+
+    let call = server.receive_request().await.unwrap();
+
+    if let Call::CreateBackup(_) = call.inner() {} else {
+        panic!("Expected Create Backup Call")
+    }
+}
+```
 
 ### Negatives Beispiel
 
@@ -473,9 +487,29 @@ Die Professionalität ist hier aus mehreren Gründen gegeben:
 
 > Code Coverage im Projekt analysieren und begründen
 
-# fettes TODO Karl
+# todo abnahme
 
 ![Screenshot-Code_coverage](coverage.png)
+Die Code coverage unterscheidet sich etwas über die verschiedenen Komponenten des Projektes hinweg.
+In der folgenden Tabelle sind die verschiedenen line-tested Anteile pro Komponente aufgelistet.
+
+ Unit Test               | Beschreibung 
+-------------------------|--------------
+ Anwendungs-Schicht      | 35 %         
+ Domänen-Schicht         | 24 %         
+ Plugin-Schicht (Server) | 68 %         
+ Plugin-Schicht (Client) | 34 %         
+ Gesamt                  | 37 %         
+
+Besonders auffällig sind die 24 % der Domänen-Schicht.
+Hier wurde viele Funktionen modelliert, die später nicht umgesetzt wurden.
+
+Während einzelne Komponenten wie die `TCP-Connection` umfangreicher getestet wurden, ist dies nicht für das gesamte
+Projekt erfolgt.
+Dies ist auf die Anforderung von 10 Unit-Tests zurückzuführen.
+Diese reichen bei weitem nicht aus um das Projekt mit einem Umfang von über 3.000 Zeilen ausreichend zu testen.
+Es ist daher wahrscheinlich, dass ungewolltes Verhalten in den weniger getesteten Komponenten vorliegt.
+Eine höhere Abdeckung wäre hier wünschenswert gewesen.
 
 ## Fakes und Mocks
 
@@ -706,7 +740,26 @@ aber einen der Core-Bestandteile der Anwendung beschreibt ist dies hinnehmbar.
 > 2 unterschiedliche Refactorings aus der Vorlesung anwenden, begründen, sowie UML vorher/nachher liefern; jeweils auf
 > die Commits verweisen]
 
-# todo Karl :c
+### Refactor 1: Auslagern der Methode `duration_to_seconds` [[commit](https://github.com/Yadusable/guardian-backup/commit/1ec0fa013ce5ada3efa64d4bb7a26e8dedaeb6e7#diff-59394192fa9a0f309ce495b63cf3a1088fa3cd3f4289b548020d18e0e0ef1f46)]
+
+UML-Diagramm vor Refactoring:  
+![UML-Diagramm](https://www.plantuml.com/plantuml/svg/BSx13i8m20RWUv-YHuqliKIlFaE3bCN65WpGNOpllcuf9_8H-5dCGRst6aB02cRn2ONljH1xCjAj8CLVYF4Mty2vKa9fRNINwuce14xf1VZftscvAtWHJYxZ10fdcnCbaxfHocLT3_lFpCVSE9E67hKGv_7N3W00)
+
+UML-Diagramm nach Refactoring:  
+![UML-Diagramm](https://www.plantuml.com/plantuml/svg/BOv12W8n34NtFKMNYfSOqArdAB5DCPYcagIp4Uy-PUXVVHwVnz_CGNqq3fd1B3w1vCw4uibGTyeOVo76Mto35CQKUskpNQudp8hWc5wGF-ExcA9rtZ4LgjKc-uUbVWm5fovBMBMtPAxdP6P3AVF70G00)
+
+Die Methode `duration_to_seconds()` wurde zunächst in `client_service.rs` implementiert, da sie dort verwendet wurde.
+Im Rahmen dieses Refactors wurde sie in die `duration.rs` in der Domänen-Schicht bewegt.
+Dort wurde sie nicht wieder als `duration_to_seconds()` implemntiert, sondern als `from_str()` Methode, welche den
+Trait `FromStr` implementiert.
+So können `duration`-Objekte komfortabler aus Strings erstellt werden.
+Die Datei `client_service.rs` konnte so auch in ihrer Größe reduziert werden, womit die Lesbarkeit und Wartbarkeit der
+Software verbessert wird.
+Durch bessere Zuordnung zu dem Duration `enum` kann die Logik auch dem Kontext entsprechend gebündelt werden.
+
+### Refactor 2: Entfernen unbenutzter Import-Statements [[commit]()]
+
+# todo Karl
 
 ## Kapitel 8 - Entwurfsmuster
 
