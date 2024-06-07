@@ -46,7 +46,7 @@ Starte zuerst den Server, indem du das Binary guardian-backup-server ausführst.
 
 Die Grundfunktionen können über folgende Befehle ausgeführt werden:
 
-# Ganz fettes TODO
+# Ganz fettes TODO Benedikt
 
 ## Wie testet man die Applikation?
 
@@ -302,7 +302,7 @@ Die starke Kopplung kann durch das Einführen von Interfaces aufgelöst werden:
  client::TcpConnection::test_send_request_blob()     | testet, ob der Client bei `Command`s BLOBs korrekt mitsenden kann und ob Responses korrekt empfangen werden 
  client::TcpConnection::test_receive_blob()          | testet, ob der Client Responses mit BLOBs korrekt empfangen kann                                            
 
-# TODO ergänzen
+# TODO ergänzen Karl
 
 ## ATRIP: Automatic
 
@@ -321,6 +321,8 @@ Durch den Rückgabewert des Prozesses können die Tests einfach in Pipelines ein
 
 ### Positives Beispiel
 
+# todo codeveispiel benedikt
+
 In `server::TcpConnection` wurde ‘Thorough’ getestet.
 Eine Verbindung kann nur `Command`s empfangen und `Request`s senden.
 Beide Aktionen sind mit und ohne BLOB möglich. Es gibt also insgesamt vier mögliche Variationen.
@@ -328,7 +330,7 @@ Die Unit-Tests decken alle vier Variationen ab und sind damit ‘Thorough’.
 
 ### Negatives Beispiel
 
-# fettes TODO
+# fettes TODO Benedikt
 
 ## ATRIP: Professional
 
@@ -344,15 +346,19 @@ Die Professionalität ist hier aus mehreren Gründen gegeben:
 2. Bestehender Code wird wiederverwendet (send_call)
 3. Der Test testet tatsächliche Logik und Interaktion zwischen Modulen und ist damit sinnvoll.
 
+# todo codebeispiel Karl
+
 ### Negatives Beispiel
 
-# fettes TODO
+# fettes TODO Karl
 
 ## Code Coverage
 
 > Code Coverage im Projekt analysieren und begründen
 
-# fettes TODO
+# fettes TODO Karl
+
+# todo Screenshot Benedikt
 
 ## Fakes und Mocks
 
@@ -447,10 +453,14 @@ Dasselbe gilt für das Markieren der letzten Ausführung.
 > jeweils 1 Code-Beispiel zu 2 Code Smells aus der Vorlesung; jeweils Code-Beispiel und einen möglichen Lösungsweg bzw.
 > den genommen Lösungsweg beschreiben (inkl. (Pseudo-)Code)]
 
+# todo Bene c:
+
 ## 2 Refactorings
 
 > 2 unterschiedliche Refactorings aus der Vorlesung anwenden, begründen, sowie UML vorher/nachher liefern; jeweils auf
 > die Commits verweisen]
+
+# todo Karl :c
 
 ## Kapitel 8 - Entwurfsmuster
 
@@ -470,8 +480,8 @@ Kompositen dar.
 
 ![UML-Diagramm](https://www.plantuml.com/plantuml/svg/JOz12m8X48Nl_WgFHNZg4X7BieVes3rY6TpPLb9t6HMYwB-dOQOddVVUzvpMUI0VZ6RAUgGH9F8Jk0c9lnYFPyCNmX49hSJLEeyas5xEPW72Vehklq08lipU5VICTb3sbjY579OXkajuL1QqUk8toT06muzAOnNfDDnncrIfmRdypgBWaGPxtisFmoNihatovLs4QEeViEgUjDB3Ik4inA-kZUPWz0S0)
 
-Der `PendinigHash` stell ein Builder-Pattern dar, da er erst über die `update()`-Methode Daten aggregiert und dann mit
-der `finalize()`-Methode zu einem `FileHash` konvertiert.
+Der `PendinigHash` stellt ein Builder-Pattern dar, da er erst über die `update()`-Methode Daten aggregiert und sich
+durch Aufruf der `finalize()`-Methode zu einem `FileHash` konvertiert.
 Das Builder-Pattern ist hier besonders sinnvoll, da so auch große Dateien verarbeitet werden können, ohne dass diese
 vollständig in den Arbeitsspeicher geladen werden müssen.
-Ein FileHash welcher zum Erstellen einen vollständigen Byte-Array benötigt ist somit nicht geeignet.
+Ein FileHash, welcher zum Erstellen einen vollständigen Byte-Array benötigt, ist somit nicht geeignet.
