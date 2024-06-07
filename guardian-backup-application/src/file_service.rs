@@ -25,6 +25,7 @@ pub trait FileService {
         file_meta: &FileMetadata,
         blob: impl BlobFetch,
     ) -> Result<(), Self::Error>;
+    async fn create_dir(path: &Path) -> Result<(), Self::Error>;
 }
 
 pub trait File {

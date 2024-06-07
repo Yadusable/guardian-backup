@@ -125,6 +125,10 @@ impl FileService for TokioFileService {
 
         Ok(())
     }
+
+    async fn create_dir(path: &Path) -> Result<(), Self::Error> {
+        Ok(tokio::fs::create_dir(path).await?)
+    }
 }
 
 #[derive(Debug)]

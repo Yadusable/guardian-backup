@@ -56,6 +56,10 @@ impl FileService for MockFileService {
     ) -> Result<(), Self::Error> {
         Ok(())
     }
+
+    async fn create_dir(path: &Path) -> Result<(), Self::Error> {
+        Ok(())
+    }
 }
 
 pub struct MockFile {
