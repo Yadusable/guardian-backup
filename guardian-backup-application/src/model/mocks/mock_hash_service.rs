@@ -1,19 +1,27 @@
-use crate::model::hash_service::{HashService, PendingHash};
+use guardian_backup_domain::hash_service::{Hasher, PendingHashB};
 use guardian_backup_domain::model::files::file_hash::FileHash;
 
-pub struct MockHashService();
+pub struct MockHasher();
 
-impl HashService for MockHashService {
-    type PendingHash = MockPendingHash;
+pub const MOCK_HASHER: MockHasher = MockHasher();
 
-    fn create_hash() -> Self::PendingHash {
-        MockPendingHash()
+impl Hasher for MockHasher {
+    fn preference(&self) -> i8 {
+        0
+    }
+
+    fn can_compare_hash(&self, hash: &FileHash) -> bool {
+        hash == &FileHash::Mock
+    }
+
+    fn create_hash(&self) -> Box<dyn PendingHashB> {
+        Box::new(MockPendingHash())
     }
 }
 
 pub struct MockPendingHash();
 
-impl PendingHash for MockPendingHash {
+impl PendingHashB for MockPendingHash {
     fn update(&mut self, _data: &[u8]) {}
 
     fn finalize(&self) -> FileHash {

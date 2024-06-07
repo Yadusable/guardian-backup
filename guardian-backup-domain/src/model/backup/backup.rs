@@ -3,6 +3,7 @@ use crate::model::backup::snapshot::Snapshot;
 use crate::model::device_identifier::DeviceIdentifier;
 use serde::{Deserialize, Serialize};
 use std::convert::Infallible;
+use std::fmt::{Display, Formatter};
 use std::path::Path;
 use std::str::FromStr;
 use std::sync::atomic::AtomicU16;
@@ -57,17 +58,37 @@ impl Backup {
     pub fn schedule(&self) -> &Schedule {
         &self.schedule
     }
-    pub fn file_root(&self) -> &Box<Path> {
+    pub fn file_root(&self) -> &Path {
         &self.file_root
     }
     pub fn snapshots(&self) -> &Vec<Snapshot> {
         &self.snapshots
     }
+    pub fn into_snapshots(self) -> impl IntoIterator<Item = Snapshot> {
+        self.snapshots.into_iter()
+    }
+    pub fn id(&self) -> &BackupId {
+        &self.id
+    }
+
+    pub fn merge_snapshots(&mut self, snapshots: impl IntoIterator<Item = Snapshot>) {
+        for snapshot in snapshots {
+            if !self.snapshots.contains(&snapshot) {
+                self.snapshots.push(snapshot)
+            }
+        }
+    }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq, Hash)]
 #[serde(transparent)]
 pub struct BackupId(pub Box<str>);
+
+impl Display for BackupId {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
 
 impl FromStr for BackupId {
     type Err = Infallible;

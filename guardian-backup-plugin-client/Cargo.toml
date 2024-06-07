@@ -2,21 +2,27 @@
 name = "guardian-backup-plugin-client"
 version = "0.1.0"
 edition = "2021"
+[features]
+mocks = ["guardian-backup-application/mocks", "guardian-backup-domain/mocks"]
+dry-run = []
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dev-dependencies]
-guardian-backup-application = {path = "../guardian-backup-application", features = ["mocks"]}
-guardian-backup-plugin-server = {path = "../guardian-backup-plugin-server"}
-tokio = {version = "1.37", features = ["test-util"]}
+guardian-backup-application = { path = "../guardian-backup-application", features = ["mocks"] }
+guardian-backup-plugin-server = { path = "../guardian-backup-plugin-server" }
+tokio = { version = "1.37", features = ["test-util"] }
 
 [dependencies]
-guardian-backup-application = {path = "../guardian-backup-application"}
-guardian-backup-domain = {path = "../guardian-backup-domain"}
+guardian-backup-application = { path = "../guardian-backup-application" }
+guardian-backup-domain = { path = "../guardian-backup-domain" }
 
 
-tokio = {version = "1.37", features = ["macros", "io-util", "rt", "net"]}
+tokio = { version = "1.37", features = ["macros", "io-util", "rt", "net", "fs"] }
 ciborium = "0.2"
 
 log = "0.4"
 clap = { version = "4.5.4", features = ["derive"] }
+serde = "1.0.198"
+
+blake3 = "1.5"

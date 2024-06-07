@@ -6,6 +6,6 @@ use serde::{Deserialize, Serialize};
 pub enum Response {
     Successful,
     Error(Box<str>),
-    BackupList(Vec<Backup>),
+    BackupList(Box<[Backup]>),
     BlobCreated(BlobIdentifier),
 }
