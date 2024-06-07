@@ -1,6 +1,6 @@
 # Programmentwurf Guardian-Backup
 
-Karl Mörtzschky
+Karl Mörtzschky  
 Benedikt Kuder
 
 07.06.2024
@@ -347,9 +347,76 @@ Durch den Rückgabewert des Prozesses können die Tests einfach in Pipelines ein
 
 ### Positives Beispiel
 
-# todo codeveispiel benedikt
+```rust
 
-In `server::TcpConnection` wurde ‘Thorough’ getestet.
+#[tokio::test]
+async fn test_receive_request() {
+    let server_config = ServerConfig::test_config();
+    let mut server = TcpServerConnectivity::new(&server_config).await.unwrap();
+    send_call(server_config.bind_to).await;
+
+    let call = server.receive_request().await.unwrap();
+
+    if let Call::CreateBackup(_) = call.inner() {} else {
+        panic!("Expected Create Backup Call")
+    }
+}
+
+#[tokio::test]
+async fn test_send_response() {
+    let server_config = ServerConfig::test_config();
+    let mut server = TcpServerConnectivity::new(&server_config).await.unwrap();
+    let mut client = send_call(server_config.bind_to).await;
+
+    let mut call = server.receive_request().await.unwrap();
+
+    call.answer(Response::Successful).await.unwrap();
+
+    let received_response = receive_response(&mut client).await;
+
+    assert_eq!(received_response, Response::Successful);
+}
+
+#[tokio::test]
+async fn test_receive_blob() {
+    let server_config = ServerConfig::test_config();
+    let mut server = TcpServerConnectivity::new(&server_config).await.unwrap();
+    let (_rx, tx) = send_call(server_config.bind_to).await.into_split();
+    send_blob(tx).await;
+
+    let mut call = server.receive_request().await.unwrap();
+    let mut blob = call.receive_blob().await.unwrap();
+
+    let blob_content = blob.read_to_eof().await.unwrap();
+
+    assert_eq!(blob_content.as_ref(), &[127; 4096])
+}
+
+#[tokio::test]
+async fn test_send_response_with_blob() {
+    let server_config = ServerConfig::test_config();
+    let mut server = TcpServerConnectivity::new(&server_config).await.unwrap();
+    let mut client = send_call(server_config.bind_to).await;
+
+    let mut call = server.receive_request().await.unwrap();
+
+    call.answer_with_blob(
+        Response::Successful,
+        InMemoryBlobFetch::new([127; 4096].into()),
+    )
+        .await
+        .unwrap();
+
+    let received_response = receive_response(&mut client).await;
+    assert_eq!(received_response, Response::Successful);
+
+    let mut received_blob = receive_blob(client).await;
+    let received_blob_data = received_blob.read_to_eof().await.unwrap();
+    assert_eq!(received_blob_data.as_ref(), &[127; 4096])
+}
+```
+
+In `server::TcpServerConnectivity` wurde ‘Thorough’ getestet.
 Eine Verbindung kann nur `Command`s empfangen und `Request`s senden.
 Beide Aktionen sind mit und ohne BLOB möglich. Es gibt also insgesamt vier mögliche Variationen.
 Die Unit-Tests decken alle vier Variationen ab und sind damit ‘Thorough’.
@@ -365,7 +432,7 @@ Die Unit-Tests decken alle vier Variationen ab und sind damit ‘Thorough’.
 
 ### Positives Beispiel
 
-Als positives Beispiel dient `server::TcpConnection::test_receive_request()`.
+Als positives Beispiel dient `server::TcpServerConnectivity::test_receive_request()`.
 Die Professionalität ist hier aus mehreren Gründen gegeben:
 
 1. Der Name beschreibt, was die Funktion testet
