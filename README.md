@@ -423,7 +423,31 @@ Die Unit-Tests decken alle vier Variationen ab und sind damit ‘Thorough’.
 
 ### Negatives Beispiel
 
-# fettes TODO Benedikt
+In `MainClientService` wurde nicht ‘Thorough’ getestet.
+Der Service kann sowohl backups erstellen, als auch backups wiederherstellen.
+Getestet wurde allerdings nur, ob Backups korrekt erstellt werden.
+Es müssen also noch Unit-Tests für die
+Methoden: `handle_command()`, `upload_to_repository_from_file_tree()`, `resolve_diffs()` und `recursive_create_in_fs`
+erstellt werden.
+
+```rust
+#[tokio::test]
+async fn test_if_create_backup_creates_backup() {
+    { ... }
+}
+
+#[tokio::test]
+async fn test_if_create_backup_contains_right_backup() {
+    { ... }
+    assert_eq!(backups_repo, expected_backup);
+}
+
+#[tokio::test]
+async fn test_if_create_backup_contains_right_backup_with_retention() {
+    { ... }
+    assert_eq!(backups_repo, expected_backup);
+}
+```
 
 ## ATRIP: Professional
 
@@ -451,7 +475,7 @@ Die Professionalität ist hier aus mehreren Gründen gegeben:
 
 # fettes TODO Karl
 
-# todo Screenshot Benedikt
+![Screenshot-Code_coverage](coverage.png)
 
 ## Fakes und Mocks
 
@@ -546,7 +570,136 @@ Dasselbe gilt für das Markieren der letzten Ausführung.
 > jeweils 1 Code-Beispiel zu 2 Code Smells aus der Vorlesung; jeweils Code-Beispiel und einen möglichen Lösungsweg bzw.
 > den genommen Lösungsweg beschreiben (inkl. (Pseudo-)Code)]
 
-# todo Bene c:
+### Code Duplikation
+
+![UML-Diagramm](https://www.plantuml.com/plantuml/svg/pP5DImCn48Rl-HL3JuhiJJpq8AqBdiNrlepfT1qwEod9HF6Z_zsOGYZYnLiFWSoJyBuFp2ePHikpk3tw7Ku4QtqZtMITuDCvLgEuHKzm9-7vdio_50nm1P5cP6MTHY6zkApCWg6Sp95mSt8TBOmKjeKSd2kdLJv8dbYxNfZKIhuNJ0bwm0IBfx3ZqCeNjRshSHINmFDUO9tUrJyMKf-E4ea_Q0dvvhfzFqx_TJ_yuJbGVANOF8UpyUoXwxvkeLcuuJTO_Qnsbcy0)
+
+Die Klasse `TokioBlobFetch` existiert sowohl in der plugin-client als auch in der plugin-server Schicht.
+Aufgetreten ist dies, da _tokio_ eine externe Abhängigkeit ist, und somit das `TokioBlobFetch` in eine Plugin-Schicht
+muss.
+Die Plugin-Schichten sind allerdings für Client und Server getrennt.
+Dies kann durch das Erstellen einer gemeinsamen Plugin-Schicht gelöst werden.
+
+![UML-Diagramm](https://www.plantuml.com/plantuml/svg/bK_BIaCn4DtFLmnPAPATkEYYj0gkHTs9b9XCRqCdavA7ehN_RhY5qAk2I0ZaF39ppY8NaqeD33jZjsOWNCeRYQiou1x0Iw6qDfRmckFBBHMxQJJY1IOAnekNOSKaP-SZLs8nV88J6NVoN9MuehXkp06WtRxoZklWHT-m9ocu_qrxeFHAgMbD-l4lXX2bQPPDplWOjpvEu-fnFwKP-h1ZNEPtiVUD6QLZwkm_Q8RrwhBRZ-Y_PG_jmBS8Md_EiKDGaxuATT9pL9Co2jIa-1-cFiazRRnp9C_Tt2S0B4XS3Vm5)
+
+Pseudo-Code wurde hier ausgelassen, da kein neuer Code entsteht. Es wird lediglich eine Datei in ein anderes Crate
+geschoben und danach der Import-Pfad der nutzenden Klassen umgeschrieben.
+
+### Long Method
+
+Die Methode `create_backup()` des `MainClientService`s stellt mit über 60 Lines of Code eine Long Method dar.
+
+```rust
+async fn create_backup(
+    &mut self,
+    backup_root: PathBuf,
+    retention_period: Duration,
+    interval: Duration,
+    name: Box<str>,
+) -> Result<(), MainClientServiceError> {
+    let mut schedule = Schedule::new(Vec::new());
+
+    if let Duration::Limited { .. } = interval {
+        schedule.add_rule(ScheduleRule::new(
+            retention_period.clone(),
+            interval,
+            Timestamp::now(),
+        ));
+    }
+
+    let filetree = F::generate_file_tree(
+        backup_root.as_path(),
+        self.hash_service.preferred_hasher(),
+        &self.user,
+    )
+        .await
+        .map_err(|e| MainClientServiceError::FileServiceError(e.into()))?;
+
+    let file_tree_box = E::encode(&filetree);
+    let hasher = self.hash_service.preferred_hasher();
+    let mut hash = hasher.create_hash();
+    hash.update(&file_tree_box);
+    let hash = hash.finalize();
+    let file_tree_blob = InMemoryBlobFetch::new(file_tree_box.into());
+
+    let file_tree_blob_identifier = BlobIdentifier::new(hash, self.user.clone());
+    self.blob_repository
+        .insert_blob(file_tree_blob_identifier.clone(), file_tree_blob)
+        .await
+        .map_err(|e| MainClientServiceError::BlobRepositoryError(e.into()))?;
+
+    let mut blobs = vec![file_tree_blob_identifier.clone()];
+    blobs.append(
+        &mut self
+            .upload_to_repository_from_file_tree(&filetree, backup_root.clone())
+            .await?,
+    );
+
+    let snapshots = vec![Snapshot::new(
+        Timestamp::now(),
+        Timestamp::now() + &retention_period,
+        file_tree_blob_identifier,
+        blobs,
+    )];
+
+    let backup = Backup::new(
+        BackupId::from_str(name.as_ref()).unwrap(),
+        DeviceIdentifier::default(),
+        schedule,
+        Box::from(backup_root),
+        snapshots,
+    );
+
+    self.backup_repository
+        .create_backup(&self.user, backup)
+        .await
+        .map_err(|e| MainClientServiceError::BackupRepositoryError(e.into()))?;
+    Ok(())
+}
+```
+
+Diese Methode würde sich in mehrere Schritte aufteilen lassen:
+
+```rust
+async fn create_backup(
+    &mut self,
+    backup_root: PathBuf,
+    retention_period: Duration,
+    interval: Duration,
+    name: Box<str>,
+) -> Result<(), MainClientServiceError> {
+    let schedule = create_schedule(retention_period, interval);
+
+    let filetree = F::generate_file_tree(
+        backup_root.as_path(),
+        self.hash_service.preferred_hasher(),
+        &self.user,
+    )
+        .await
+        .map_err(|e| MainClientServiceError::FileServiceError(e.into()))?;
+
+    let snapshot = self.create_snapshot(filetree, backup_root);
+
+    let snapshots = vec![snapshot];
+
+    let backup = Backup::new(
+        BackupId::from_str(name.as_ref()).unwrap(),
+        DeviceIdentifier::default(),
+        schedule,
+        Box::from(backup_root),
+        snapshots,
+    );
+
+    self.backup_repository
+        .create_backup(&self.user, backup)
+        .await
+        .map_err(|e| MainClientServiceError::BackupRepositoryError(e.into()))?;
+    Ok(())
+}
+```
+
+So ist die Funktion nun nur noch knapp über 30 Zeilen lang. Dies ist zwar immer noch für OOP eine lange Methode, da sie
+aber einen der Core-Bestandteile der Anwendung beschreibt ist dies hinnehmbar.
 
 ## 2 Refactorings
 
