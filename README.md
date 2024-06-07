@@ -757,9 +757,19 @@ Die Datei `client_service.rs` konnte so auch in ihrer Größe reduziert werden, 
 Software verbessert wird.
 Durch bessere Zuordnung zu dem Duration `enum` kann die Logik auch dem Kontext entsprechend gebündelt werden.
 
-### Refactor 2: Entfernen unbenutzter Import-Statements [[commit]()]
+### Refactor 2: Umbenennen von `upload_to_repository_from_file_tree` [[commit](https://github.com/Yadusable/guardian-backup/commit/43b05c7e0d1f8d0ec98edd18dfcfd92033ddecd4)]
 
-# todo Karl
+UML-Diagramm vor Refactoring:  
+![UML-Diagramm](https://www.plantuml.com/plantuml/svg/FOv12W8n34NtFKMNYfSOSEtA0uJOfXXico591qIyksKOt7qUlCTVp55zj1fIHRDuG-xNojJzJhfnelW9CLxY4tkk14bQc-jqtc5IGYTuO7gDzM1A9dKZo5oA7MoiLJ232oYjOkoYRoWg3GhFg2lHtqv3ZQT_jBd3dlc641RgUJxz0G00)
+
+UML-Diagramm nach Refactoring:  
+![UML-Diagramm](https://www.plantuml.com/plantuml/svg/FSv12W8n38NXVK_HfU8b1boxyW2XTbunsAP3aXaGyUwMON0NViZ7cyoJ-jfgo3MPnLjYkLQ6-1swSKRyX1WlyPbahg3SMnlNwRp7h4WEUgJyMfUZAQpN3JHpANOq5eCwiNWdnTADlUkRYlP6XGVh2lp_ywh6GpXq5jgXRmXXWinZwmy0)
+
+Die Methode `upload_to_repository_from_file_tree()` fügt in ein Repository implementierendes Struct ein.
+Dieses kann unterschiedliche Ausprägungen haben und es ist erst einmal keine Definition über Server-Client Zustände
+getroffen.
+Dies kann aber durch die Wortwahl von "upload" verstanden werden.
+Um hier Missverständnissen vorzubeugen wurde die Methode in `insert_into_repository_from_file_tree()` umbenannt.
 
 ## Kapitel 8 - Entwurfsmuster
 
