@@ -35,6 +35,7 @@ impl<C: ConnectionClientInterface> BlobRepository for RemoteBlobRepository<C> {
             .map_err(|e| RemoteBlobRepositoryError::Connectivity(e.into()))?;
 
         if &Response::Successful != res.inner() {
+            println!("{:?}", res.inner());
             todo!()
         }
 
@@ -54,6 +55,7 @@ impl<C: ConnectionClientInterface> BlobRepository for RemoteBlobRepository<C> {
             .map_err(|e| RemoteBlobRepositoryError::Connectivity(e.into()))?;
 
         if &Response::Successful != res.inner() {
+            println!("{:?}", res.inner());
             todo!()
         }
 

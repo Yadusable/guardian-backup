@@ -78,10 +78,20 @@ impl FileService for TokioFileService {
     }
 
     async fn delete_file(path: &Path) -> Result<(), Self::Error> {
+        println!("Delete file {}", path.as_os_str().to_str().unwrap());
+
+        #[cfg(feature = "dry-run")]
+        return Ok(());
+
         Ok(tokio::fs::remove_file(path).await?)
     }
 
     async fn delete_dir_all(path: &Path) -> Result<(), Self::Error> {
+        println!("Delete dir {}", path.as_os_str().to_str().unwrap());
+
+        #[cfg(feature = "dry-run")]
+        return Ok(());
+
         Ok(tokio::fs::remove_dir_all(path).await?)
     }
 
@@ -90,6 +100,11 @@ impl FileService for TokioFileService {
         file_meta: &FileMetadata,
         mut blob: impl BlobFetch,
     ) -> Result<(), Self::Error> {
+        println!("write file {}", path.as_os_str().to_str().unwrap());
+
+        #[cfg(feature = "dry-run")]
+        return Ok(());
+
         let mut file = tokio::fs::File::options()
             .write(true)
             .create(true)
@@ -127,6 +142,11 @@ impl FileService for TokioFileService {
     }
 
     async fn create_dir(path: &Path) -> Result<(), Self::Error> {
+        println!("create dir {}", path.as_os_str().to_str().unwrap());
+
+        #[cfg(feature = "dry-run")]
+        return Ok(());
+
         Ok(tokio::fs::create_dir(path).await?)
     }
 }

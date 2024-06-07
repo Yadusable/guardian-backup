@@ -124,12 +124,12 @@ impl FileTreeNode {
 
     pub fn iter(&self, path: PathBuf) -> Box<dyn Iterator<Item = (PathBuf, &FileTreeNode)> + '_> {
         match self {
-            FileTreeNode::File { name, .. } => Box::new(once((path.join(name), self))),
+            FileTreeNode::File { name, .. } => Box::new(once((path, self))),
             FileTreeNode::Directory { children, name, .. } => {
                 let dirpath = path.join(name);
 
                 Box::new(
-                    once((dirpath.clone(), self))
+                    once((path.clone(), self))
                         .chain(children.iter().flat_map(move |e| e.iter(dirpath.clone()))),
                 )
             }

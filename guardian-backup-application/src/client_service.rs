@@ -6,7 +6,6 @@ use crate::in_memory_repositories::backup_repository::InMemoryBackupRepository;
 use crate::in_memory_repositories::blob_repository::InMemoryBlobFetch;
 use crate::in_memory_repositories::blob_repository::InMemoryBlobRepository;
 use crate::model::client_model::{ClientBackupCommand, ClientCommand, ClientSubcommand};
-use crate::model::mocks::mock_hash_service::MOCK_HASHER;
 use guardian_backup_domain::hash_service::HashService;
 use guardian_backup_domain::hash_service::Hasher;
 use guardian_backup_domain::hash_service::PendingHashB;
@@ -34,7 +33,10 @@ use std::vec;
 
 #[cfg(any(test, feature = "mocks"))]
 use crate::model::mocks::mock_encoder_service::MockEncoderService;
+#[cfg(any(test, feature = "mocks"))]
 use crate::model::mocks::mock_file_service::MockFileService;
+#[cfg(any(test, feature = "mocks"))]
+use crate::model::mocks::mock_hash_service::MOCK_HASHER;
 
 pub trait ClientService {
     type Error: Error;
@@ -76,6 +78,7 @@ impl<B: BackupRepository, L: BlobRepository, E: EncodingService, F: FileService>
     }
 }
 
+#[cfg(any(test, feature = "mocks"))]
 impl
     MainClientService<
         InMemoryBackupRepository,
@@ -84,7 +87,6 @@ impl
         MockFileService,
     >
 {
-    #[cfg(any(test, feature = "mocks"))]
     pub fn new_mock() -> Self {
         MainClientService {
             user: UserIdentifier::new("Mock".into()),
@@ -157,7 +159,8 @@ impl<B: BackupRepository, L: BlobRepository, E: EncodingService, F: FileService>
                     .await
                     .map_err(|e| MainClientServiceError::FileServiceError(e.into()))?;
 
-                    self.resolve_diffs(new_file_tree, old_file_tree, backup_root.as_path());
+                    self.resolve_diffs(new_file_tree, old_file_tree, backup_root.as_path())
+                        .await?;
                     Ok(())
                 }
                 ClientBackupCommand::List {} => {
@@ -210,13 +213,11 @@ impl<B: BackupRepository, L: BlobRepository, E: EncodingService, F: FileService>
             .map_err(|e| MainClientServiceError::BlobRepositoryError(e.into()))?;
 
         let mut blobs = vec![file_tree_blob_identifier.clone()];
-        match self
-            .upload_to_repository_from_file_tree(&filetree, backup_root.clone())
-            .await
-        {
-            Ok(blob_vec) => blobs = blob_vec,
-            Err(_) => {}
-        }
+        blobs.append(
+            &mut self
+                .upload_to_repository_from_file_tree(&filetree, backup_root.clone())
+                .await?,
+        );
 
         let snapshots = vec![Snapshot::new(
             Timestamp::now(),
@@ -232,6 +233,7 @@ impl<B: BackupRepository, L: BlobRepository, E: EncodingService, F: FileService>
             Box::from(backup_root),
             snapshots,
         );
+
         self.backup_repository
             .create_backup(&self.user, backup)
             .await
@@ -243,8 +245,8 @@ impl<B: BackupRepository, L: BlobRepository, E: EncodingService, F: FileService>
         &mut self,
         file_tree_node: &FileTreeNode,
         backup_root_path: PathBuf,
-    ) -> Result<Vec<BlobIdentifier>, Box<dyn Error>> {
-        let files = file_tree_node.iter(backup_root_path);
+    ) -> Result<Vec<BlobIdentifier>, MainClientServiceError> {
+        let files = file_tree_node.iter(backup_root_path.parent().unwrap().into());
         let mut associated_blobs = vec![];
         for (path, file_node) in files {
             if let FileTreeNode::File {
@@ -253,11 +255,17 @@ impl<B: BackupRepository, L: BlobRepository, E: EncodingService, F: FileService>
                 ..
             } = file_node
             {
-                let file = F::get_file(path.join(name).as_path()).await?;
-                let blob = file.get_as_blob().await?;
+                let file = F::get_file(path.join(name).as_path())
+                    .await
+                    .map_err(|e| MainClientServiceError::FileServiceError(e.into()))?;
+                let blob = file
+                    .get_as_blob()
+                    .await
+                    .map_err(|e| MainClientServiceError::FileServiceError(e.into()))?;
                 self.blob_repository
                     .insert_blob(blob_identifier.clone(), blob)
-                    .await?;
+                    .await
+                    .map_err(|e| MainClientServiceError::BlobRepositoryError(e.into()))?;
                 associated_blobs.push(blob_identifier.clone())
             }
         }
@@ -278,32 +286,10 @@ impl<B: BackupRepository, L: BlobRepository, E: EncodingService, F: FileService>
 
         for diff in diffs {
             match diff.diff_type {
-                FileTreeDiffType::Created => match diff.node {
-                    FileTreeNode::File {
-                        name,
-                        blob,
-                        metadata,
-                    } => F::write_file(
-                        diff.location.join(name).as_path(),
-                        &metadata,
-                        self.blob_repository
-                            .fetch_blob(&blob)
-                            .await
-                            .map_err(|e| BlobRepositoryError(e.into()))?,
-                    )
-                    .await
-                    .map_err(|e| FileServiceError(e.into()))?,
-                    FileTreeNode::Directory {
-                        name,
-                        metadata,
-                        children,
-                    } => F::create_dir(diff.location.join(name).as_path())
-                        .await
-                        .map_err(|e| FileServiceError(e.into()))?,
-                    FileTreeNode::SymbolicLink { .. } => {
-                        unimplemented!()
-                    }
-                },
+                FileTreeDiffType::Created => {
+                    self.recursive_create_in_fs(diff.location.as_ref(), &diff.node)
+                        .await?;
+                }
                 FileTreeDiffType::Updated => {
                     if let FileTreeNode::File {
                         name,
@@ -372,6 +358,43 @@ impl<B: BackupRepository, L: BlobRepository, E: EncodingService, F: FileService>
                 }
             }
         }
+        Ok(())
+    }
+
+    async fn recursive_create_in_fs(
+        &mut self,
+        path: &Path,
+        dir: &FileTreeNode,
+    ) -> Result<(), MainClientServiceError> {
+        match dir {
+            FileTreeNode::File {
+                name,
+                metadata,
+                blob,
+            } => F::write_file(
+                path.join(name).as_path(),
+                metadata,
+                self.blob_repository
+                    .fetch_blob(blob)
+                    .await
+                    .map_err(|e| BlobRepositoryError(e.into()))?,
+            )
+            .await
+            .map_err(|e| FileServiceError(e.into()))?,
+            FileTreeNode::Directory { name, children, .. } => {
+                F::create_dir(path.join(name).as_path())
+                    .await
+                    .map_err(|e| FileServiceError(e.into()))?;
+
+                for child in children {
+                    Box::pin(self.recursive_create_in_fs(path.join(name).as_path(), child)).await?;
+                }
+            }
+            FileTreeNode::SymbolicLink { .. } => {
+                unimplemented!()
+            }
+        }
+
         Ok(())
     }
 }

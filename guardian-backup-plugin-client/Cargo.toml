@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2021"
 [features]
 mocks = ["guardian-backup-application/mocks", "guardian-backup-domain/mocks"]
+dry-run = []
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 

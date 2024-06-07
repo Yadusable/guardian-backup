@@ -45,7 +45,7 @@ impl ConnectionServerInterface for TcpServerConnectivity {
 
         let call = ciborium::from_reader(call_data.as_slice())?;
         Ok(IncomingTcpCall {
-            user: UserIdentifier::new(format!("TCP_{}", client_address).into()), //TODO actual user authentication
+            user: UserIdentifier::new("TestUser".into()), //TODO actual user authentication
             rx,
             tx,
             call,
