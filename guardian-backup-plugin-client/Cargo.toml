@@ -23,3 +23,5 @@ ciborium = "0.2"
 log = "0.4"
 clap = { version = "4.5.4", features = ["derive"] }
 serde = "1.0.198"
+
+blake3 = "1.5"

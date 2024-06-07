@@ -63,16 +63,14 @@ impl<B: BackupRepository, L: BlobRepository, E: EncodingService, F: FileService>
         user: UserIdentifier,
         backup_repository: B,
         blob_repository: L,
-        encoding_service: PhantomData<E>,
-        file_service: PhantomData<F>,
         hash_service: HashService,
     ) -> Self {
         Self {
             user,
             backup_repository,
             blob_repository,
-            encoding_service,
-            file_service,
+            encoding_service: PhantomData,
+            file_service: PhantomData,
             hash_service,
         }
     }
@@ -92,8 +90,8 @@ impl
             user: UserIdentifier::new("Mock".into()),
             backup_repository: InMemoryBackupRepository::new(),
             blob_repository: InMemoryBlobRepository::new(),
-            encoding_service: PhantomData::default(),
-            file_service: PhantomData::default(),
+            encoding_service: PhantomData,
+            file_service: PhantomData,
             hash_service: HashService::new(vec![&MOCK_HASHER as &dyn Hasher]),
         }
     }

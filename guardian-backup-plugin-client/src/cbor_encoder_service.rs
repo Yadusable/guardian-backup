@@ -16,3 +16,9 @@ impl EncodingService for CborEncoderService {
         encoded
     }
 }
+
+impl CborEncoderService {
+    pub fn new() -> Self {
+        CborEncoderService {}
+    }
+}
