@@ -463,13 +463,18 @@ mod tests {
     use guardian_backup_domain::model::timestamp::Timestamp;
     use guardian_backup_domain::model::user_identifier::UserIdentifier;
     use guardian_backup_domain::repositories::backup_repository::BackupRepository;
-    use std::path::PathBuf;
+    use std::path::{Path, PathBuf};
 
     #[tokio::test]
     async fn test_if_create_backup_creates_backup() {
         let mut client_service = MainClientService::new_mock();
         client_service
-            .create_backup(PathBuf::new(), MONTH, Duration::Infinite, "Testname".into())
+            .create_backup(
+                "/a/b".parse().unwrap(),
+                MONTH,
+                Duration::Infinite,
+                "Testname".into(),
+            )
             .await
             .unwrap();
         let backups_repo = client_service
@@ -485,7 +490,7 @@ mod tests {
         let mut client_service = MainClientService::new_mock();
         client_service
             .create_backup(
-                PathBuf::new(),
+                "/a/b".parse().unwrap(),
                 Duration::Infinite,
                 Duration::Infinite,
                 "Testname".into(),
@@ -503,12 +508,15 @@ mod tests {
             BackupId("Testname".into()),
             DeviceIdentifier::default(),
             Schedule::new(vec![]),
-            PathBuf::new().into(),
+            Path::new("/a/b").into(),
             vec![Snapshot::new(
                 Timestamp::now(),
                 None,
                 BlobIdentifier::new(FileHash::Mock, client_service.user.clone()),
-                vec![BlobIdentifier::new(FileHash::Mock, client_service.user)],
+                vec![
+                    BlobIdentifier::new(FileHash::Mock, client_service.user.clone()),
+                    BlobIdentifier::new(FileHash::Mock, client_service.user),
+                ],
             )],
         );
         assert_eq!(backups_repo, expected_backup);
@@ -518,7 +526,12 @@ mod tests {
     async fn test_if_create_backup_contains_right_backup_with_retention() {
         let mut client_service = MainClientService::new_mock();
         client_service
-            .create_backup(PathBuf::new(), MONTH, Duration::Infinite, "Testname".into())
+            .create_backup(
+                "/a/b".parse().unwrap(),
+                MONTH,
+                Duration::Infinite,
+                "Testname".into(),
+            )
             .await
             .unwrap();
         let backups_repo = client_service
@@ -532,12 +545,15 @@ mod tests {
             BackupId("Testname".into()),
             DeviceIdentifier::default(),
             Schedule::new(vec![]),
-            PathBuf::new().into(),
+            Path::new("/a/b").into(),
             vec![Snapshot::new(
                 Timestamp::now(),
                 Timestamp::now() + &MONTH,
                 BlobIdentifier::new(FileHash::Mock, client_service.user.clone()),
-                vec![BlobIdentifier::new(FileHash::Mock, client_service.user)],
+                vec![
+                    BlobIdentifier::new(FileHash::Mock, client_service.user.clone()),
+                    BlobIdentifier::new(FileHash::Mock, client_service.user),
+                ],
             )],
         );
         assert_eq!(backups_repo, expected_backup);
