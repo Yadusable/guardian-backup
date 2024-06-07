@@ -558,4 +558,18 @@ mod tests {
         );
         assert_eq!(backups_repo, expected_backup);
     }
+
+    #[tokio::test]
+    async fn test_functionality() {
+        let mut client_service = MainClientService::new_mock();
+        client_service
+            .create_backup(
+                "/a/b".parse().unwrap(),
+                MONTH,
+                Duration::Infinite,
+                "Testname".into(),
+            )
+            .await
+            .unwrap();
+    }
 }
