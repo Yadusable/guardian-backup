@@ -1,4 +1,6 @@
 use crate::connectivity::tokio_blob_fetch::TokioBlobFetch;
+use crate::tokio_file_service::TokioFileServiceError;
+use crate::tokio_file_service::TokioFileServiceError::BlobRead;
 use guardian_backup_application::file_service::File;
 use guardian_backup_domain::hash_service::Hasher;
 use guardian_backup_domain::hash_service::PendingHashB;
@@ -13,12 +15,14 @@ pub struct TokioFile {
 }
 
 impl File for TokioFile {
-    type Error = tokio::io::Error;
+    type Error = TokioFileServiceError;
 
     async fn get_hash<H: Hasher>(&self, hasher: H) -> Result<FileHash, Self::Error> {
         let file_blob = self.get_as_blob().await?;
         let mut hash = hasher.create_hash();
-        hash.update_blob(file_blob);
+        hash.update_blob(file_blob)
+            .await
+            .map_err(|e| BlobRead(e.into()))?;
         Ok(hash.finalize())
     }
 

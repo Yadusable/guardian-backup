@@ -1,3 +1,4 @@
+use crate::client_service::MainClientServiceError::{BlobRepositoryError, FileServiceError};
 use crate::encoding_service::EncodingService;
 use crate::file_service::File;
 use crate::file_service::FileService;
@@ -117,7 +118,7 @@ impl<B: BackupRepository, L: BlobRepository, E: EncodingService, F: FileService>
                     name,
                 } => {
                     self.create_backup(backup_root, retention_period, Box::from(name))
-                        .await;
+                        .await?;
                     Ok(())
                 }
                 ClientBackupCommand::Restore { backup_root, id } => {
@@ -175,7 +176,7 @@ impl<B: BackupRepository, L: BlobRepository, E: EncodingService, F: FileService>
         backup_root: PathBuf,
         retention_period: Option<String>,
         name: Box<str>,
-    ) -> Result<(), F::Error> {
+    ) -> Result<(), MainClientServiceError> {
         let mut schedule = Schedule::new(Vec::new());
 
         let mut ret_period = 2600000;
@@ -204,7 +205,8 @@ impl<B: BackupRepository, L: BlobRepository, E: EncodingService, F: FileService>
             self.hash_service.preferred_hasher(),
             &self.user,
         )
-        .await?;
+        .await
+        .map_err(|e| MainClientServiceError::FileServiceError(e.into()))?;
 
         // encode file tree as Box<[u8]>
         let file_tree_box = E::encode(&filetree);
@@ -218,7 +220,9 @@ impl<B: BackupRepository, L: BlobRepository, E: EncodingService, F: FileService>
         // insert all files in file tree to blob repository
         let file_tree_blob_identifier = BlobIdentifier::new(hash, self.user.clone());
         self.blob_repository
-            .insert_blob(file_tree_blob_identifier.clone(), file_tree_blob);
+            .insert_blob(file_tree_blob_identifier.clone(), file_tree_blob)
+            .await
+            .map_err(|e| MainClientServiceError::BlobRepositoryError(e.into()))?;
 
         // create snapshot
         let lifetime_limit;
@@ -331,23 +335,111 @@ impl Error for DurationErrors {}
 impl<B: BackupRepository, L: BlobRepository, E: EncodingService, F: FileService>
     MainClientService<B, L, E, F>
 {
-    pub fn resolve_diffs(
-        &self,
+    pub async fn resolve_diffs(
+        &mut self,
         current_state: FileTreeNode,
         expected_state: FileTreeNode,
         root: &Path,
-    ) {
+    ) -> Result<(), MainClientServiceError> {
         let diffs = expected_state.diff_to(&current_state, root.into());
 
         for diff in diffs {
-            todo!();
             match diff.diff_type {
-                FileTreeDiffType::Created => {}
-                FileTreeDiffType::Updated => {}
-                FileTreeDiffType::Deleted => {}
-                FileTreeDiffType::ChangedType => {}
+                FileTreeDiffType::Created => match diff.node {
+                    FileTreeNode::File {
+                        name,
+                        blob,
+                        metadata,
+                    } => F::write_file(
+                        diff.location.join(name).as_path(),
+                        &metadata,
+                        self.blob_repository
+                            .fetch_blob(&blob)
+                            .await
+                            .map_err(|e| BlobRepositoryError(e.into()))?,
+                    )
+                    .await
+                    .map_err(|e| FileServiceError(e.into()))?,
+                    FileTreeNode::Directory {
+                        name,
+                        metadata,
+                        children,
+                    } => F::create_dir(diff.location.join(name).as_path())
+                        .await
+                        .map_err(|e| FileServiceError(e.into()))?,
+                    FileTreeNode::SymbolicLink { .. } => {
+                        unimplemented!()
+                    }
+                },
+                FileTreeDiffType::Updated => {
+                    if let FileTreeNode::File {
+                        name,
+                        blob,
+                        metadata,
+                    } = diff.node
+                    {
+                        F::write_file(
+                            diff.location.join(name).as_path(),
+                            &metadata,
+                            self.blob_repository
+                                .fetch_blob(&blob)
+                                .await
+                                .map_err(|e| BlobRepositoryError(e.into()))?,
+                        )
+                        .await
+                        .map_err(|e| FileServiceError(e.into()))?
+                    }
+                }
+                FileTreeDiffType::Deleted => match diff.node {
+                    FileTreeNode::File { name, .. } => {
+                        F::delete_file(diff.location.join(name).as_path())
+                            .await
+                            .map_err(|e| FileServiceError(e.into()))?
+                    }
+                    FileTreeNode::Directory { name, .. } => {
+                        F::delete_dir_all(diff.location.join(name).as_path())
+                            .await
+                            .map_err(|e| FileServiceError(e.into()))?
+                    }
+                    FileTreeNode::SymbolicLink { .. } => {
+                        unimplemented!()
+                    }
+                },
+                FileTreeDiffType::ChangedType => {
+                    F::delete_dir_all(diff.location.join(diff.node.name()).as_path())
+                        .await
+                        .map_err(|e| FileServiceError(e.into()))?;
+
+                    match diff.node {
+                        FileTreeNode::File {
+                            name,
+                            blob,
+                            metadata,
+                        } => F::write_file(
+                            diff.location.join(name).as_path(),
+                            &metadata,
+                            self.blob_repository
+                                .fetch_blob(&blob)
+                                .await
+                                .map_err(|e| BlobRepositoryError(e.into()))?,
+                        )
+                        .await
+                        .map_err(|e| FileServiceError(e.into()))?,
+                        FileTreeNode::Directory {
+                            name,
+                            metadata,
+                            children,
+                        } => F::create_dir(diff.location.join(name).as_path())
+                            .await
+                            .map_err(|e| FileServiceError(e.into()))?,
+                        FileTreeNode::SymbolicLink { .. } => {
+                            unimplemented!()
+                        }
+                    }
+                }
             }
         }
+        Ok(())
     }
 }
 

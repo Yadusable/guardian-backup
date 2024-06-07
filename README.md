@@ -71,8 +71,12 @@ Es werden also Abläufe und Zusammenhänge so abgebildet wie diese auch in der D
 ## Analyse der Dependency Rule
 > (1 Klasse, die die Dependency Rule einhält und eine Klasse, die die Dependency Rule verletzt);   jeweils UML der Klasse und Analyse der Abhängigkeiten in beide Richtungen (d.h., von wem hängt die Klasse ab und wer hängt von der Klasse ab) in Bezug auf die Dependency Rule
 ### Positiv-Beispiel: Dependency Rule
+![UML-Diagramm](https://www.plantuml.com/plantuml/svg/bL7DIiGm4BxdAUReAka359GLyU1Dq7l9PiSQDftKoRHbKT_TQQneOVVWeULZlf-PhzrcSIn35utnqUKCaWuXrJMXrFMpxv-4qNNmRW0iL5K5O1HUWKxt5vi29mw22rQ5eazZUkSFhaLuZ4CRIFrB_1o9F2BV9IBq4iOWHwLdinnxX7lcn70z2_zAohYeCjA-ONmRC4lPkXurKv3NPXVJRcFAqIioa22JYyLeWT5Z657ft2VAfSLYAH7hBhSqAJ5G-rldvyH4twqUvlmNvt5LwT-tBulrqVVfJsRjnytvzMTCbzQU_i5cEpVhuXS0)  
+
 Die Klasse `TcpServerConnectivity` (Plugin-Schicht) implementiert `ConnectionServerInterface` (Anwendungs-Schicht) und kann so in der Anwendungs-Schicht verwendet werden, obwohl die TCP-Implementation tokio als externe Bibliothek verwendet.
 ### Negativ-Beispiel: Dependency Rule
+![UML-Diagramm](https://www.plantuml.com/plantuml/svg/PP5BQiGm343tFeMPLKkP2uGXJ4isini8T1kChIIYZXpywPH-RjERz69r1iNzH0b4Ua_4mZg6g7nCanK2AOBlbGOPm1kegXOyAekli5KDX2A5c9L-KWF8iqq3adpx8VTq0JA9Xj-mSTFN9y62j5KXo8SiqfnhcMClqLICJeQHWMVKKCdc-ZqPe8WzWcSTz0WcsTpGSiQYHmkTToxcFxgNmrd5iMOLICrXT35KyX7qeUMo5bT_9makDxUSAsEwjRz0D6lAuwrb6QU0CaOXvVH2aABhjdW2Fy0V_Y7okpo2xss_Vw_bxl_ITblDYoiDEOxBUYRx3G00)
+
 Die Klasse `Backup` (Domänen-Schichte) implementiert `Serialize` und `Deserialize`. Beide Interfaces werden in der externen Bibliothek serde definiert. Dieser Bruch der Dependency rule wird hingenommen, da serde als sehr stabil gilt und es als unwahrscheinlich anzunehmen ist, dass die verwendeten Interfaces sich noch ändern. Eine Re-Implementation von serde-Interfaces schien nicht sinnvoll.
 
 
@@ -243,7 +247,7 @@ Die Presstonalität ist hier aus mehreren Gründen gegeben:
 > Analyse und Begründung des Einsatzes von 2 Fake/Mock-Objekten; zusätzlich jeweils UML Diagramm der Klasse
 
 ### Beispiel 1
-[UML_Diagramm](https://www.plantuml.com/plantuml/svg/SoWkIImgAStDuShCAqajIajCJbNmI2pEI2rIgEPI009jXPBAWbI5WDIybCoyT92KDHTKeg0eDIsrA3KlELL34ogKd9WNdvoVMv1Ob1gV0LIBa2XAJIo1YzLoSINd91ONA_Zc9sVJnJeaYtHrQ-oWVkHo0De3z3m0)
+![UML_Diagramm](https://www.plantuml.com/plantuml/svg/SoWkIImgAStDuShCAqajIajCJbNmI2pEI2rIgEPI009jXPBAWbI5WDIybCoyT92KDHTKeg0eDIsrA3KlELL34ogKd9WNdvoVMv1Ob1gV0LIBa2XAJIo1YzLoSINd91ONA_Zc9sVJnJeaYtHrQ-oWVkHo0De3z3m0)
 
 Die Klasse `MockHasher` stellt eine Mock-Implementation des `Hasher`-Interfaces dar.
 Sie wurde erstellt damit Komponenten getestet werden können obwohl eine vollständige Implementation des Hasher-Interfaces noch nicht existierte.
