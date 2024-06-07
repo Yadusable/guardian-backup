@@ -9,8 +9,7 @@ use guardian_backup_domain::model::files::file_metadata::FileMetadata;
 use guardian_backup_domain::model::files::file_tree::FileTreeNode;
 use guardian_backup_domain::model::user_identifier::UserIdentifier;
 use std::convert::Infallible;
-use std::path::{Path, PathBuf};
-use std::time::UNIX_EPOCH;
+use std::path::Path;
 
 pub struct MockFileService {}
 

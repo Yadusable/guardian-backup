@@ -1,7 +1,5 @@
 use crate::model::backup::schedule_rule::ScheduleRule;
-use crate::model::timestamp::Timestamp;
 use serde::{Deserialize, Serialize};
-use std::time::UNIX_EPOCH;
 
 #[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq)]
 pub struct Schedule {

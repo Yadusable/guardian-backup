@@ -401,10 +401,26 @@ impl Error for CreateErrors {}
 
 #[cfg(test)]
 mod tests {
-    use crate::client_service::MainClientService;
+    use crate::client_service::{ClientService, MainClientService};
+    use crate::model::client_model::ClientBackupCommand::Create;
+    use crate::model::client_model::{ClientCommand, ClientSubcommand};
+    use guardian_backup_domain::repositories::backup_repository::BackupRepository;
+    use std::path::PathBuf;
 
     #[tokio::test]
     async fn test_create_backup() {
-        let clientService = MainClientService::new_mock();
+        let mut clientService = MainClientService::new_mock();
+        let command = ClientCommand {
+            subcommand: ClientSubcommand::Backup(Create {
+                backup_root: PathBuf::new(),
+                retention_period: None,
+                name: "Testname".to_string(),
+            }),
+        };
+        let result = clientService.handle_command(command).await.unwrap();
+        let backups_repo = clientService
+            .backup_repository
+            .get_backups(&clientService.user)
+            .await;
     }
 }

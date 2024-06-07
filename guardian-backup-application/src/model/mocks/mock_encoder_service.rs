@@ -12,7 +12,7 @@ impl EncodingService for MockEncoderService {
 
     fn encode<T: serde::ser::Serialize>(payload: T) -> Vec<u8> {
         let mut encoded = vec![];
-        ciborium::into_writer(&payload, encoded.as_mut_slice()).unwrap();
+        ciborium::into_writer(&payload, &mut encoded).unwrap();
         encoded
     }
 }
