@@ -1,4 +1,6 @@
+use crate::model::duration::Duration;
 use serde::{Deserialize, Serialize};
+use std::ops::Add;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Debug, Serialize, Deserialize)]
@@ -37,6 +39,19 @@ impl Timestamp {
                 .unwrap()
                 .as_millis() as u64
                 + diff_in_millis,
+        }
+    }
+}
+
+impl Add<&Duration> for Timestamp {
+    type Output = Option<Timestamp>;
+
+    fn add(self, rhs: &Duration) -> Self::Output {
+        match rhs {
+            Duration::Infinite => None,
+            Duration::Limited { milliseconds } => Some(Timestamp {
+                milliseconds_since_epoch: milliseconds + self.milliseconds_since_epoch,
+            }),
         }
     }
 }

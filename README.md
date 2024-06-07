@@ -8,6 +8,7 @@ Benedikt Kuder
 
 ## Übersicht über die Applikation
 > Was macht die Applikation? Wie funktioniert sie? Welches Problem löst sie/welchen Zweck hat sie?
+
 Bei Guardian-Backup handelt es sich um eine pseudeo-offline Backup-Lösung.
 Dabei erstellt ein client ein Backup und lädt dieses auf den Server hoch.
 Der Client kann allerdings nur neue Backups erzeugen und keine Löschen.
@@ -83,18 +84,18 @@ Die Klasse `Backup` (Domänen-Schichte) implementiert `Serialize` und `Deseriali
 ## Analyse der Schichten
 > jeweils 1 Klasse zu 2 unterschiedlichen Schichten der Clean-Architecture: jeweils UML der Klasse (ggf. auch zusammenspielenden Klassen), Beschreibung der Aufgabe, Einordnung mit Begründung in die Clean-Architecture
 ### Schicht: [Domäne]
-![UML-Diagramm](https://www.plantuml.com/plantuml/svg/NL1DQiKW4DvxYbacBRb0A2MBdY0jtOheb0XgWevfeVJkdOY-l9U5yFteDtup9LAHidT2QATIWdUzeCaEuLS0310PfX4-KRyqP-RpAjXzXe3VNGy5bejTNx0oHXwyqeX-tR4g8Fwke-PpN0fgIyjAqjal9EjnXBSS5Tar5Dy6mhWhTv4vZYJ-eCw7DC87l-HYVhlxPa4jjj8Mrzmp1atL4fAywjpWjgQdONWe8iI4mV12_m40)  
+![UML-Diagramm](https://www.plantuml.com/plantuml/svg/NS_Dgi8m40NWVPvYblSYla0efRXpvK9nMz9sYWFv2PaH1V7TJKiCr2p2vEHRdEbOJ9AxisgqXXdEtaI-1O6NWdps8EGm6nSrNBvZ-S9df6I4WkyNfU4KbqTJNLlWJ1PxIOZzOCEWuP3luuHUQ2PC1HdcC98Hd5R56guuDblQgXNlmEFZxx_CjM5DVehLVDiZns_LeP_ozXy0)
 
-Die Klasse `Schedule` beschreibt den Rhythmus in welchem Backups erstellt werden sollen.  
-Dieser Plan besteht aus mehreren `ScheduleRule` welche jeweils eine Regel sowie deren letzte Ausführung beschreiben.  
-Hier handelt es sich im Domänenlogik, da die Aufgabe darin liegt einen Backup-Plan (ein Objekt aus der Domäne) zu repräsentieren.  
+Die Klasse `Snapshot` beschreibt den Zustand eines Dateibaums zu einem diskreten Zeitpunkt.
+Es handelt sich um ein Domänenobjekt, da ein Domänenexperte (wie z.B. ein Sysadmin) mit dem Begriff Snapshot vertraut ist.
+In der Domäne werden auch zur Systemsicherung manuell Snapshots angelegt.
 
-### Schicht: [Plugin]
+### Schicht: [Anwendung]
 ![UML-Diagramm](https://www.plantuml.com/plantuml/svg/ZP5BJiCm48RtFiKiUJGNgAgeL2p8eXiarf4RJuD5_90zLgc0st0JBeP9J92h968t-VBDv9_9rXDt55J76BEyUU4jmfq-eHP1j_36cevx3vNUepBkl8j6i8zeZPSKdwC0KC2XntuD3zm_xxdTF7bqbK1DyYZHhKO-z5TY1KDLbem1t4ABLASXLzSNf3wSQoaI3bPmmlGciSPXndgeyVHJie-_jUwD-lhKs6UMcj0TUOCmkT9KfjbKqxccaW74E033JNzlCNvGYZNipEl6aojpDJ_dGaC-Eub6AKaeUYCwi_-oADvBkAHB-isumxALn__FHBP5BOBglW40)
 
 Die `InMemoryBackupRepository`-Klasse ist eine Implementierung des `BackupRepository`-Interfaces.  
 Sie speichert Backup-Objekte direkt im Arbeitsspeicher.  
-Da es sich bei der Art der Speicherung um ein Implementierungsdetail handelt ist diese Klasse in die Anwendungs-SChicht einzuordnen.  
+Da es sich bei der Art der Speicherung um ein Implementierungsdetail handelt und keine externen Komponenten notwendig sind ist diese Klasse in die Anwendungs-Schicht einzuordnen.  
 
 
 
@@ -125,7 +126,7 @@ Das OCP ist erfüllt da der `HashService` geschlossen gegen Änderungen ist (das
 Dennoch ist der `HashService` offen, da weiterhin neue `Hasher` hinzugefügt werden können.
 
 ### Negativ-Beispiel
-Die Klasse `MainServerService` zusammen mit dem Enum `Call` erfüllen nicht das OCP, da das Hinzufügen einer neuen `Call`-Variante eine Abänderung des Switch-Statements innerhalb `MainServerService.internal_handle()` notwendig ist.
+Die Methode `internal_handle` zusammen mit dem Enum `Call` erfüllen nicht das OCP, da das Hinzufügen einer neuen `Call`-Variante eine Abänderung des Switch-Statements innerhalb `internal_handle` notwendig ist.
 
 aktueller Pseudo-Code:
 ```rust
@@ -181,7 +182,25 @@ Da dieses Verhalten im Rahmen von Unit-Tests gewünscht ist, wird hier kein wirk
 ### Analyse GRASP: Geringe Kopplung
 > jeweils eine bis jetzt noch nicht behandelte Klasse als positives und negatives Beispiel geringer Kopplung; jeweils UML Diagramm mit zusammenspielenden Klassen, Aufgabenbeschreibung und Begründung für die Umsetzung der geringen Kopplung bzw. Beschreibung, wie die Kopplung aufgelöst werden kann
 ### Positiv-Beispiel
+![UML-Diagramm](https://www.plantuml.com/plantuml/svg/jP9BJiGm38RtFeMNF9GBW40Z99Piu01Hcdfc8Z9fSLnG1RqxeUr493nOqKMhVlcLt_haJHJ3CXmyW0j2l3MMy87ucVZZxTBVAs1wpb76dl2MkMDOoTw4rfDsmNO75tQQwMcWA2UdC05ORsB4E-F2NzVXLTaumyivfjJomSROnw5F3NqNdNGyNk3DZEupEIPzrvIv1EgKMeVOaUZbwfYchfbkHktQV33qhH5QppArJ0LTSQ2NDQ9mDXkCrukmnK_MNGtuYsyN8d4QBkLpVKkUX4gs9R7x8ve-DTNAwgxi_V_qJ01VTq8DwkqQ2_PTx4ofIjPFeNerO4EXJLl-3W00)
+
+Als Positivbeispiel für geringe Kopplung dient die Klasse `MainServerService`.
+Sie ist für die Handhabung eingehender `Command`s zuständig..
+Die Klasse selbst nutzt lediglich Interfaces als Member-Variablen und implementiert selbst das `ServerService`-Interface.
+So kann die Implementation der Member-Variablen selbst jederzeit ausgetauscht werden, ohne dass `MainServerService` angepasst werden muss.
+Es kann auch der ganze `MainServerService` durch eine andere Implementation eines `ServerService` ersetzt werden, ohne dass der Rest der Anwendung angepasst werden muss.
+
 ### Negativ-Beispiel
+![UML-Diagramm](https://www.plantuml.com/plantuml/svg/NL1DQiKW4DvxYbacBRb0A2MBdY0jtOheb0XgWevfeVJkdOY-l9U5yFteDtup9LAHidT2QATIWdUzeCaEuLS0310PfX4-KRyqP-RpAjXzXe3VNGy5bejTNx0oHXwyqeX-tR4g8Fwke-PpN0fgIyjAqjal9EjnXBSS5Tar5Dy6mhWhTv4vZYJ-eCw7DC87l-HYVhlxPa4jjj8Mrzmp1atL4fAywjpWjgQdONWe8iI4mV12_m40)  
+
+Die Klasse `Schedule` beschreibt den Rhythmus in welchem Backups erstellt werden sollen.  
+Dieser Plan besteht aus mehreren `ScheduleRule` welche jeweils eine Regel sowie deren letzte Ausführung beschreiben.  
+Hier handelt es sich um starke Kopplung, da der `Schedule` selbst immer direkt verwendet wird, und auch die `ScheduleRule`s dirket eingebunden sind.
+Ein einfaches Austauschen der Implementationen ist so nicht möglich.
+
+Die starke Kopplung kann durch das Einführen von Interfaces aufgelöst werden:  
+![UML-Diagramm](https://www.plantuml.com/plantuml/svg/jP11QiCm44NtEiKianPTm9IGHKzWbswDa2R48Cb1CqeBRUzUHNXmhMuA9Gl3d_-i_wKv4fl4ENXblI62WTrWp-YoH_XG01fIaTJ1Azed8Ntv3ghGHuZujjj3bVN7tRvguznucvSnOPYlk3YWljJljdvjf6WkT9vvzDC9UGhOmNDEXgSvLZv5ndGrlh5B8e_uZZRVh0vUoabY4ou_RbgLn2wZn0bTOz0j7Y6FhLyUKK-UZ4LOT_QlhRI1ifPxFK1Qu44xlUbK0xi_Kktrvq7m1lKD5aiTCReS_3S0)
+
 
 ## Analyse GRASP: Hohe Kohäsion
 > eine Klasse als positives Beispiel hoher Kohäsion; UML Diagramm und Begründung, warum die Kohäsion hoch ist
@@ -202,6 +221,8 @@ server::TcpConnection::test_send_response_with_blob | testet ob der Server bei a
 client::TcpConnection::test_send_request() | testet ob der Client `Command`s korrekt encoden und senden kann und ob Responses korrekt empfangen werden
 client::TcpConnection::test_send_request_blob() | testet ob der Client bei `Command`s BLOBs korrekt mitsenden kann und ob Responses korrekt empfangen werden
 client::TcpConnection::test_receive_blob() | testet ob der Client Responses mit BLOBs korrekt empfangen kann
+
+# TODO ergänzen
 
 ## ATRIP: Automatic
 > Begründung/Erläuterung, wie ‘Automatic’ realisiert wurde
@@ -260,17 +281,51 @@ Sie wurde erstellt damit Komponenten getestet werden können obwohl eine vollst�
 # Kapitel 6 - Domain Driven Design
 ## Ubiquitous Language
 > 4 Beispiele für die Ubiquitous Language; jeweils Bezeichung, Bedeutung und kurze Begründung, warum es zur Ubiquitous Language gehört
+
 Bezeichung | Bedeutung | Begründung
 -|-|-
+BLOB | Binärstring | Ein BLOB beschreibt ein binär dargestelltes Objekt. SO besteht eine File z.B. aus Metadaten und BLOB
+FileTreeNode | Datei | Ein FileTreeNode beschreibt einen Eintrag in einem Dateisystem. Er wird durch Metadaten und Inhalt identifiziert. Eine Dateiänderung entspricht z.B. dem Löschen der alten FileTreeNode und erstellen einer neuen FileTreeNode |
+Snapshot | Version | Ein Snapshot bezeichnet den Zustand eines Dateibaums zu einem diskreten Zeitpunkt
+Schedule | Backup-Plan | Ein Schedule besteht aus mehreren ScheduleRules und bestimmt wann ein planmäßiger Snapshot zu erstellen ist
 
 ## Entities
 > UML, Beschreibung und Begründung des Einsatzes einer Entity; falls keine Entity vorhanden: ausführliche Begründung, warum es keines geben kann/hier nicht sinnvoll ist
+
+![UML-Diagramm](https://www.plantuml.com/plantuml/svg/PP312iCW44JlVeN7bj8V2264qajkXK2lGTnD8pKQrBI5qd-lX7MXr8kpRqOTR6DI8Qsp5K9R5QCyANrV5_aMCg-ZD50Hwe0GuCDehEHvspj0byneC90TzOImsXpeIP4n6ej3y3xb6_shlgWqDUMCKqkSV8gLlAAkUneRiVa7wV2vsvDM04F9CpHG9DKh8zTXm3MOyEjCZ4j--CSpXXl-y8yGeaK7-GE_)
+
+Das Objekt `Backup` stellt ein Entity dar.
+Dazu wurde sich entschieden, da ein Backup alle zugehörigen Snapshots speichert.
+Da Snapshots erstellt oder gelöscht werden können, Pro FileRoot aber nur ein Set an Snapshots sinnvoll ist, wird hier das Backup Entity, welches durch eine ID identifiziert wird, modifiziert.
+
 ## Value Objects
 > UML, Beschreibung und Begründung des Einsatzes eines Value Objects; falls kein Value Object vorhanden: ausführliche Begründung, warum es keines geben kann/hier nicht sinnvoll ist
+
+![UML-Diagramm](https://www.plantuml.com/plantuml/svg/SoWkIImgAStDuU9ApaaiBbPmoibFyan9pIl9JCjCBLAevb800bs5ZCJY32i5jyoSL0yW2ofOMfnQPAKG2YGHEhZ0SjeAUQdb6feGDbWpZ0FM1EJKSd4vfEQb06q60000)
+
+Ein `BlobIdentifier` stellt ein ValueObject dar, da es alleine über seinen Inhalt identifiziert wird.
+Ein verschiedener `FileHash` zeigt auf einen verschiedenen BLOB. DIes ist Sinnvoll, da BLOB als immutable gehandhabt werden und eine Änderung durch das erstellen eines neuen BLOBs abgebildet wird. Dies ermöglicht die Versionierung durch Snapshots.
+Aus Gründen der Nutzerisolation führt auch eine Änderung des `UserIdentifiers` zu einer ID auf einen verschiedenen BLOB.
+
 ## Repositories
 > UML, Beschreibung und Begründung des Einsatzes eines Repositories; falls kein Repository vorhanden: ausführliche Begründung, warum es keines geben kann/hier nicht sinnvoll ist
+
+![UML-Diagramm](https://www.plantuml.com/plantuml/svg/fP0nQyD038Lt_GgDBUtjfRZ6BHJgmKlNKiBvBEE3yvtHoOD9yjzpTfmXXf0XMWGVJtfFAg9ebh5t0DOBSQiDuPSBzIyD8Le9FE4UCDKBoZGGVZC7XfLO7ubbLoVzq_FA6d8aTCrQ4jDTq170E1qZbhwYFXdSjSEFJQI5BZAbpWtdvV4TVtJiAZraixvio8jjBV4hVhB9_iQt_pnVnnwyu4PsfGxv9Yj0GRv97pu1)
+
+Die `BlobRepository` stellt einen zentralen Speicherort für alle BLOBs dar.
+Dies ist sinnvoll, da das Interface so z.B. durch einen File-Store oder einen S3-Store implementiert werden kann, damit der Arbeitsspeicher nicht voll läuft.
+Hier wurde zu Testzwecken die `BlobRepository` durch einen `InMemoryBlobRepository` implementiert.
+Auch ist ein Repository hier sinnvoll, da mehrere Snapshots auf den selben BLOB verweisen können und es sinnvoller ust die Verwaltung dieser auszulagern.
+
 ## Aggregates
 > UML, Beschreibung und Begründung des Einsatzes eines Aggregates; falls kein Aggregate vorhanden: ausführliche Begründung, warum es keines geben kann/hier nicht sinnvoll ist
+
+![UML-Diagramm](https://www.plantuml.com/plantuml/svg/PP1DQiGm38NtFeMM_I4N2ANCeYUObcwDY5MI8Zk39KyBfNUl6CPEFGa4hFV9ptewY6BM4jcvYL44NgUPGc627mVs3P2ja17UQNggx6Z_ixlmHqZqTNT_FLzwMuKXU5DemnJNC_MQp6lXuEcRfgARFAFupo9QGJ3oUplZyV-Sal1aPkfv-I1T8etmKZBgigPhnvAKyXbv1nZRGoQEy6QtHJ6UQiPgsSQhLbNejj3RRKb9_GvPfhRnXs7eeZdd3fH2YVm7)
+
+
+Ein `Schedule` stellt ein Aggregat über mehrere `ScheduleRules` dar.
+Dies ist sinnvoll, da man sonst immer über alle Regeln iterieren müsste um festzustellen ob ein neuer Snapshot fällig ist.
+Das selbe gilt für das markieren der letzten Ausführung.
 
 # Kapitel 7 - Refactoring
 ## Code Smells
@@ -280,6 +335,11 @@ Bezeichung | Bedeutung | Begründung
 
 ## Kapitel 8 - Entwurfsmuster
 > 2 unterschiedliche Entwurfsmuster aus der Vorlesung (oder nach Absprache auch andere) jeweils sinnvoll einsetzen, begründen und UML-Diagramm]
-### Entwurfsmuster: [Name]
+### Entwurfsmuster: [Kompositum]
+![UML-Diagramm](https://www.plantuml.com/plantuml/svg/VP7RIiGm48RlynIvL6HV88Wi8eBWuM8NRoLD_gw3ESXq2XRntStM40_kjXUb_ypq_-Qm7iIoZ34eXJH6VPyzjjChzBlIvRccWFdZYXXECa-psaonou7SBQKNDKVETB8H9wTLUEhx9ybDau2B-53A1JiC3MDC8LHOzJ3wOTW8KzhLO1ToP_HbUTzu9A6Um3KL8TPRiMPkzAwgGvZM_pBhsx3zq5o_Ajmp1Sz8HZ_2dU-nMmRse8j3t9-RMaQBvHsa39hV_jksi-JLwi_oZkNQ0CSAVXznZUJ763u1)
+
+Der `FileTreeNode` stellt ein Kompositum dar. Dies ist primär sinnvoll, da jeder Dateibaum ein Kompositum darstellt, und ein `FileTreeNode` einen Dateibaum abbilden soll.
+`FileTreeNode::File`s und ``FileTreeNode::SymbolicLink`` stellen hierbei Blätter dar, `NodeType::Directory` stellen Kompositen dar.
+
 ### Entwurfsmuster: [Name]
  

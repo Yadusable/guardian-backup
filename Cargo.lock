@@ -222,6 +222,7 @@ name = "guardian-backup-domain"
 version = "0.1.0"
 dependencies = [
  "log",
+ "regex",
  "serde",
 ]
 

@@ -116,9 +116,10 @@ impl<B: BackupRepository, L: BlobRepository, E: EncodingService, F: FileService>
                 ClientBackupCommand::Create {
                     backup_root,
                     retention_period,
+                    interval,
                     name,
                 } => {
-                    self.create_backup(backup_root, retention_period, Box::from(name))
+                    self.create_backup(backup_root, retention_period, interval, Box::from(name))
                         .await?;
                     Ok(())
                 }
@@ -175,29 +176,19 @@ impl<B: BackupRepository, L: BlobRepository, E: EncodingService, F: FileService>
     async fn create_backup(
         &mut self,
         backup_root: PathBuf,
-        retention_period: Option<String>,
+        retention_period: Duration,
+        interval: Duration,
         name: Box<str>,
     ) -> Result<(), MainClientServiceError> {
         let mut schedule = Schedule::new(Vec::new());
 
-        let mut ret_period = 2600000;
-        match retention_period {
-            None => {}
-            Some(_) => {
-                let seconds_unwrapped = &*retention_period.unwrap();
-                if let Ok(duration_seconds) = duration_to_seconds(seconds_unwrapped) {
-                    ret_period = duration_seconds * 1000
-                }
-            }
+        if let Duration::Limited { .. } = interval {
+            schedule.add_rule(ScheduleRule::new(
+                retention_period.clone(),
+                interval,
+                Timestamp::now(),
+            ));
         }
-
-        schedule.add_rule(ScheduleRule::new(
-            Duration::Limited {
-                milliseconds: ret_period as u64,
-            },
-            Duration::Infinite,
-            Timestamp::now(),
-        ));
 
         let filetree = F::generate_file_tree(
             backup_root.as_path(),
@@ -207,30 +198,20 @@ impl<B: BackupRepository, L: BlobRepository, E: EncodingService, F: FileService>
         .await
         .map_err(|e| MainClientServiceError::FileServiceError(e.into()))?;
 
-        // encode file tree as Box<[u8]>
         let file_tree_box = E::encode(&filetree);
         let hasher = self.hash_service.preferred_hasher();
         let mut hash = hasher.create_hash();
         hash.update(&file_tree_box);
         let hash = hash.finalize();
-        // insert encoded file tree as blob
         let file_tree_blob = InMemoryBlobFetch::new(file_tree_box.into());
 
-        // insert all files in file tree to blob repository
         let file_tree_blob_identifier = BlobIdentifier::new(hash, self.user.clone());
         self.blob_repository
             .insert_blob(file_tree_blob_identifier.clone(), file_tree_blob)
             .await
             .map_err(|e| MainClientServiceError::BlobRepositoryError(e.into()))?;
 
-        // create snapshot
-        let lifetime_limit;
-        match schedule.rules().get(0) {
-            None => lifetime_limit = None,
-            Some(rule_lifetime) => lifetime_limit = rule_lifetime.lifetime().get_duration(),
-        }
-
-        let mut blobs = vec![];
+        let mut blobs = vec![file_tree_blob_identifier.clone()];
         match self
             .upload_to_repository_from_file_tree(&filetree, backup_root.clone())
             .await
@@ -241,7 +222,7 @@ impl<B: BackupRepository, L: BlobRepository, E: EncodingService, F: FileService>
 
         let snapshots = vec![Snapshot::new(
             Timestamp::now(),
-            lifetime_limit.map(|e| Timestamp::from_now_in_millis(e)),
+            Timestamp::now() + &retention_period,
             file_tree_blob_identifier,
             blobs,
         )];
@@ -285,55 +266,6 @@ impl<B: BackupRepository, L: BlobRepository, E: EncodingService, F: FileService>
         Ok(associated_blobs)
     }
 }
-
-fn duration_to_seconds(input: &str) -> Result<u32, DurationErrors> {
-    let input_str = input;
-    let regex = Regex::new(r"(\d+d|\d+h|\d+m)").unwrap();
-    println!("{}", input_str);
-
-    let mut duration_in_sec = 0;
-
-    if !regex.is_match(input_str) {
-        return Err(DurationErrors::NoMatches);
-    }
-
-    for timepart_capture in regex.captures_iter(input_str) {
-        let time_piece = timepart_capture.get(0).unwrap().as_str();
-        println!("{:?}", time_piece);
-        let (time_amount_str, unit) = time_piece.split_at(time_piece.len() - 1);
-        let time_amount = time_amount_str.parse::<u32>().unwrap();
-        match unit {
-            "d" => {
-                duration_in_sec += 24 * 60 * 60 * time_amount;
-            }
-            "h" => {
-                duration_in_sec += 60 * 60 * time_amount;
-            }
-            "m" => {
-                duration_in_sec += 60 * time_amount;
-            }
-            _ => {
-                panic!("should be unreachable, check duration regex")
-            }
-        }
-    }
-    Ok(duration_in_sec)
-}
-
-#[derive(Debug)]
-pub enum DurationErrors {
-    NoMatches,
-}
-
-impl Display for DurationErrors {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        match self {
-            DurationErrors::NoMatches => write!(f, "No matches in the valid format found!"),
-        }
-    }
-}
-
-impl Error for DurationErrors {}
 
 impl<B: BackupRepository, L: BlobRepository, E: EncodingService, F: FileService>
     MainClientService<B, L, E, F>
@@ -505,7 +437,7 @@ mod tests {
     use guardian_backup_domain::model::backup::snapshot::Snapshot;
     use guardian_backup_domain::model::blobs::blob_identifier::BlobIdentifier;
     use guardian_backup_domain::model::device_identifier::DeviceIdentifier;
-    use guardian_backup_domain::model::duration::Duration;
+    use guardian_backup_domain::model::duration::{Duration, MONTH};
     use guardian_backup_domain::model::files::file_hash::FileHash;
     use guardian_backup_domain::model::timestamp::Timestamp;
     use guardian_backup_domain::model::user_identifier::UserIdentifier;
@@ -516,7 +448,7 @@ mod tests {
     async fn test_if_create_backup_creates_backup() {
         let mut client_service = MainClientService::new_mock();
         client_service
-            .create_backup(PathBuf::new(), None, "Testname".into())
+            .create_backup(PathBuf::new(), MONTH, Duration::Infinite, "Testname".into())
             .await
             .unwrap();
         let backups_repo = client_service
@@ -531,7 +463,12 @@ mod tests {
     async fn test_if_create_backup_contains_right_backup() {
         let mut client_service = MainClientService::new_mock();
         client_service
-            .create_backup(PathBuf::new(), None, "Testname".into())
+            .create_backup(
+                PathBuf::new(),
+                Duration::Infinite,
+                Duration::Infinite,
+                "Testname".into(),
+            )
             .await
             .unwrap();
         let backups_repo = client_service
@@ -544,17 +481,40 @@ mod tests {
         let expected_backup = Backup::new(
             BackupId("Testname".into()),
             DeviceIdentifier::default(),
-            Schedule::new(vec![ScheduleRule::new(
-                Duration::Limited {
-                    milliseconds: 2600000,
-                },
-                Duration::Infinite,
-                Timestamp::now(),
-            )]),
+            Schedule::new(vec![]),
             PathBuf::new().into(),
             vec![Snapshot::new(
                 Timestamp::now(),
                 None,
+                BlobIdentifier::new(FileHash::Mock, client_service.user.clone()),
+                vec![BlobIdentifier::new(FileHash::Mock, client_service.user)],
+            )],
+        );
+        assert_eq!(backups_repo, expected_backup);
+    }
+
+    #[tokio::test]
+    async fn test_if_create_backup_contains_right_backup_with_retention() {
+        let mut client_service = MainClientService::new_mock();
+        client_service
+            .create_backup(PathBuf::new(), MONTH, Duration::Infinite, "Testname".into())
+            .await
+            .unwrap();
+        let backups_repo = client_service
+            .backup_repository
+            .get_backup_by_id(&BackupId("Testname".into()), &client_service.user)
+            .await
+            .unwrap()
+            .unwrap();
+
+        let expected_backup = Backup::new(
+            BackupId("Testname".into()),
+            DeviceIdentifier::default(),
+            Schedule::new(vec![]),
+            PathBuf::new().into(),
+            vec![Snapshot::new(
+                Timestamp::now(),
+                Timestamp::now() + &MONTH,
                 BlobIdentifier::new(FileHash::Mock, client_service.user.clone()),
                 vec![BlobIdentifier::new(FileHash::Mock, client_service.user)],
             )],

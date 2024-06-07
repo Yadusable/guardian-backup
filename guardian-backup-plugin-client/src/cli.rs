@@ -4,7 +4,9 @@ use guardian_backup_application::model::client_model::{
 };
 
 use guardian_backup_domain::model::backup::backup::BackupId;
+use guardian_backup_domain::model::duration::{Duration, DurationError, MONTH};
 use std::path::PathBuf;
+use std::str::FromStr;
 
 #[derive(Parser)]
 pub struct Cli {
@@ -61,6 +63,9 @@ pub enum BackupCommand {
         /// Set how long the backup should be saved (e.g. "3d12h"); default is ~30d
         #[arg(short, long)]
         retention_period: Option<String>,
+        /// SSet the interval between backups (e.g. "3d12h"); default is Infinite
+        #[arg(short, long)]
+        interval: Option<String>,
         /// Set a unique name for the backup to be displayed with
         #[arg(short, long)]
         name: String,
@@ -100,37 +105,47 @@ impl From<EntityType> for ClientSubcommand {
                 user_name,
                 password,
             },
-            EntityType::Backup(inner) => ClientSubcommand::Backup(inner.into()),
+            EntityType::Backup(inner) => {
+                ClientSubcommand::Backup(inner.try_into().expect("Failed to parse"))
+            } //TODO error handling
         }
     }
 }
 
-impl From<BackupCommand> for ClientBackupCommand {
-    fn from(value: BackupCommand) -> Self {
+impl TryFrom<BackupCommand> for ClientBackupCommand {
+    type Error = DurationError;
+
+    fn try_from(value: BackupCommand) -> Result<Self, Self::Error> {
         match value {
             BackupCommand::Auto {
                 backup_root,
                 retention_period,
-            } => ClientBackupCommand::Auto {
+            } => Ok(ClientBackupCommand::Auto {
                 backup_root,
                 retention_period,
-            },
+            }),
             BackupCommand::Create {
                 backup_root,
                 retention_period,
+                interval,
                 name,
-            } => ClientBackupCommand::Create {
+            } => Ok(ClientBackupCommand::Create {
                 backup_root,
-                retention_period,
+                retention_period: retention_period
+                    .map(|e| Duration::from_str(e.as_str()))
+                    .unwrap_or(Ok(MONTH))?,
+                interval: interval
+                    .map(|e| Duration::from_str(e.as_str()))
+                    .unwrap_or(Ok(Duration::Infinite))?,
                 name,
-            },
+            }),
             BackupCommand::Restore {
                 file_root,
                 backup_id,
-            } => ClientBackupCommand::Restore {
+            } => Ok(ClientBackupCommand::Restore {
                 backup_root: file_root,
                 id: backup_id,
-            },
+            }),
             BackupCommand::List { .. } => {
                 todo!()
             }

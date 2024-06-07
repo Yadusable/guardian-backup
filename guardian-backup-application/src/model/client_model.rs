@@ -1,4 +1,5 @@
 use guardian_backup_domain::model::backup::backup::BackupId;
+use guardian_backup_domain::model::duration::Duration;
 use std::path::PathBuf;
 
 pub struct ClientCommand {
@@ -33,7 +34,9 @@ pub enum ClientBackupCommand {
         /// Set path which will be backed up
         backup_root: PathBuf,
         /// Set how long the backup should be saved (e.g. 30d)
-        retention_period: Option<String>,
+        retention_period: Duration,
+        /// Set the interval between two Backups
+        interval: Duration,
         /// Set a unique name for the backup to be displayed with
         name: String,
     },
