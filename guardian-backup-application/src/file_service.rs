@@ -1,6 +1,7 @@
 use guardian_backup_domain::hash_service::{Hasher, PendingHashB};
 use guardian_backup_domain::model::blobs::blob_fetch::BlobFetch;
 use guardian_backup_domain::model::files::file_hash::FileHash;
+use guardian_backup_domain::model::files::file_metadata::FileMetadata;
 use guardian_backup_domain::model::files::file_tree::{FileTreeDiff, FileTreeNode};
 use guardian_backup_domain::model::user_identifier::UserIdentifier;
 use std::error::Error;
@@ -16,6 +17,14 @@ pub trait FileService {
         hasher: &dyn Hasher<PendingHashA = dyn PendingHashB>,
         user: &UserIdentifier,
     ) -> Result<FileTreeNode, Self::Error>;
+
+    async fn delete_file(path: &Path) -> Result<(), Self::Error>;
+    async fn delete_dir_all(path: &Path) -> Result<(), Self::Error>;
+    async fn write_file(
+        path: &Path,
+        file_meta: &FileMetadata,
+        blob: impl BlobFetch,
+    ) -> Result<(), Self::Error>;
 }
 
 pub trait File {

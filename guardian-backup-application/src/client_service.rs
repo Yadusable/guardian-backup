@@ -75,7 +75,7 @@ impl<B: BackupRepository, L: BlobRepository, E: EncodingService, F: FileService>
                     name,
                 } => {
                     self.create_backup(backup_root, retention_period, Box::from(name))
-                        .await;
+                        .await?;
                     Ok(())
                 }
                 ClientBackupCommand::Restore { backup_root, id } => {
@@ -133,7 +133,7 @@ impl<B: BackupRepository, L: BlobRepository, E: EncodingService, F: FileService>
         backup_root: PathBuf,
         retention_period: Option<String>,
         name: Box<str>,
-    ) -> Result<(), F::Error> {
+    ) -> Result<(), MainClientServiceError> {
         let mut schedule = Schedule::new(Vec::new());
 
         let mut ret_period = 2600000;
@@ -162,7 +162,8 @@ impl<B: BackupRepository, L: BlobRepository, E: EncodingService, F: FileService>
             self.hash_service.preferred_hasher(),
             &self.user,
         )
-        .await?;
+        .await
+        .map_err(|e| MainClientServiceError::FileServiceError(e.into()))?;
 
         // encode file tree as Box<[u8]>
         let file_tree_box = E::encode(&filetree);
@@ -176,7 +177,9 @@ impl<B: BackupRepository, L: BlobRepository, E: EncodingService, F: FileService>
         // insert all files in file tree to blob repository
         let file_tree_blob_identifier = BlobIdentifier::new(hash, self.user.clone());
         self.blob_repository
-            .insert_blob(file_tree_blob_identifier.clone(), file_tree_blob);
+            .insert_blob(file_tree_blob_identifier.clone(), file_tree_blob)
+            .await
+            .map_err(|e| MainClientServiceError::BlobRepositoryError(e.into()))?;
 
         // create snapshot
         let lifetime_limit;

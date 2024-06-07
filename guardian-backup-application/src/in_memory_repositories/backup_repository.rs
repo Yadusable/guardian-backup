@@ -3,6 +3,7 @@ use guardian_backup_domain::model::user_identifier::UserIdentifier;
 use guardian_backup_domain::repositories::backup_repository::BackupRepository;
 use std::collections::HashMap;
 use std::convert::Infallible;
+use std::iter::empty;
 
 pub struct InMemoryBackupRepository {
     backups: HashMap<UserIdentifier, HashMap<BackupId, Backup>>,
@@ -24,7 +25,7 @@ impl BackupRepository for InMemoryBackupRepository {
         user: &UserIdentifier,
     ) -> Result<Box<dyn Iterator<Item = Backup> + '_>, Self::Error> {
         Ok(match self.backups.get(user) {
-            None => Box::new(std::iter::Empty::default()),
+            None => Box::new(empty()),
             Some(res) => Box::new(res.values().cloned()),
         })
     }
