@@ -16,7 +16,7 @@ pub struct MockFileService {}
 
 impl FileService for MockFileService {
     type File = MockFile;
-    type Error = tokio::io::Error;
+    type Error = Infallible;
 
     async fn get_file(path: &Path) -> Result<Self::File, Self::Error> {
         Ok(MockFile {
@@ -39,6 +39,22 @@ impl FileService for MockFileService {
                 last_modified: 123456789,
             },
         })
+    }
+
+    async fn delete_file(path: &Path) -> Result<(), Self::Error> {
+        Ok(())
+    }
+
+    async fn delete_dir_all(path: &Path) -> Result<(), Self::Error> {
+        Ok(())
+    }
+
+    async fn write_file(
+        path: &Path,
+        file_meta: &FileMetadata,
+        blob: impl BlobFetch,
+    ) -> Result<(), Self::Error> {
+        Ok(())
     }
 }
 
