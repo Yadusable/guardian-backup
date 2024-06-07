@@ -13,12 +13,20 @@ impl Timestamp {
         }
     }
 
+    #[cfg(not(test))]
     pub fn now() -> Self {
         Self {
             milliseconds_since_epoch: SystemTime::now()
                 .duration_since(UNIX_EPOCH)
                 .unwrap()
                 .as_millis() as u64,
+        }
+    }
+
+    #[cfg(test)]
+    pub fn now() -> Self {
+        Self {
+            milliseconds_since_epoch: 25569,
         }
     }
 

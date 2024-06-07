@@ -30,6 +30,7 @@ use std::marker::PhantomData;
 use std::path::Path;
 use std::path::PathBuf;
 use std::str::FromStr;
+use std::vec;
 
 #[cfg(any(test, feature = "mocks"))]
 use crate::model::mocks::mock_encoder_service::MockEncoderService;
@@ -198,8 +199,6 @@ impl<B: BackupRepository, L: BlobRepository, E: EncodingService, F: FileService>
             Timestamp::now(),
         ));
 
-        let snapshots = vec![];
-
         let filetree = F::generate_file_tree(
             backup_root.as_path(),
             self.hash_service.preferred_hasher(),
@@ -240,20 +239,24 @@ impl<B: BackupRepository, L: BlobRepository, E: EncodingService, F: FileService>
             Err(_) => {}
         }
 
-        let snapshot = Snapshot::new(
+        let snapshots = vec![Snapshot::new(
             Timestamp::now(),
             lifetime_limit.map(|e| Timestamp::from_now_in_millis(e)),
             file_tree_blob_identifier,
             blobs,
-        );
+        )];
 
-        Backup::new(
+        let backup = Backup::new(
             BackupId::from_str(name.as_ref()).unwrap(),
             DeviceIdentifier::default(),
             schedule,
             Box::from(backup_root),
             snapshots,
         );
+        self.backup_repository
+            .create_backup(&self.user, backup)
+            .await
+            .map_err(|e| MainClientServiceError::BackupRepositoryError(e.into()))?;
         Ok(())
     }
 
@@ -496,23 +499,66 @@ mod tests {
     use crate::client_service::{ClientService, MainClientService};
     use crate::model::client_model::ClientBackupCommand::Create;
     use crate::model::client_model::{ClientCommand, ClientSubcommand};
+    use guardian_backup_domain::model::backup::backup::{Backup, BackupId};
+    use guardian_backup_domain::model::backup::schedule::Schedule;
+    use guardian_backup_domain::model::backup::schedule_rule::ScheduleRule;
+    use guardian_backup_domain::model::backup::snapshot::Snapshot;
+    use guardian_backup_domain::model::blobs::blob_identifier::BlobIdentifier;
+    use guardian_backup_domain::model::device_identifier::DeviceIdentifier;
+    use guardian_backup_domain::model::duration::Duration;
+    use guardian_backup_domain::model::files::file_hash::FileHash;
+    use guardian_backup_domain::model::timestamp::Timestamp;
+    use guardian_backup_domain::model::user_identifier::UserIdentifier;
     use guardian_backup_domain::repositories::backup_repository::BackupRepository;
     use std::path::PathBuf;
 
     #[tokio::test]
-    async fn test_create_backup() {
-        let mut clientService = MainClientService::new_mock();
-        let command = ClientCommand {
-            subcommand: ClientSubcommand::Backup(Create {
-                backup_root: PathBuf::new(),
-                retention_period: None,
-                name: "Testname".to_string(),
-            }),
-        };
-        let result = clientService.handle_command(command).await.unwrap();
-        let backups_repo = clientService
+    async fn test_if_create_backup_creates_backup() {
+        let mut client_service = MainClientService::new_mock();
+        client_service
+            .create_backup(PathBuf::new(), None, "Testname".into())
+            .await
+            .unwrap();
+        let backups_repo = client_service
             .backup_repository
-            .get_backups(&clientService.user)
-            .await;
+            .get_backup_by_id(&BackupId("Testname".into()), &client_service.user)
+            .await
+            .unwrap()
+            .unwrap();
+    }
+
+    #[tokio::test]
+    async fn test_if_create_backup_contains_right_backup() {
+        let mut client_service = MainClientService::new_mock();
+        client_service
+            .create_backup(PathBuf::new(), None, "Testname".into())
+            .await
+            .unwrap();
+        let backups_repo = client_service
+            .backup_repository
+            .get_backup_by_id(&BackupId("Testname".into()), &client_service.user)
+            .await
+            .unwrap()
+            .unwrap();
+
+        let expected_backup = Backup::new(
+            BackupId("Testname".into()),
+            DeviceIdentifier::default(),
+            Schedule::new(vec![ScheduleRule::new(
+                Duration::Limited {
+                    milliseconds: 2600000,
+                },
+                Duration::Infinite,
+                Timestamp::now(),
+            )]),
+            PathBuf::new().into(),
+            vec![Snapshot::new(
+                Timestamp::now(),
+                None,
+                BlobIdentifier::new(FileHash::Mock, client_service.user.clone()),
+                vec![BlobIdentifier::new(FileHash::Mock, client_service.user)],
+            )],
+        );
+        assert_eq!(backups_repo, expected_backup);
     }
 }
