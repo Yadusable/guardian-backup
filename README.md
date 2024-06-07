@@ -1,6 +1,6 @@
 # Programmentwurf Guardian-Backup
 
-Karl Mörtzschky  
+Karl Mörtzschky
 Benedikt Kuder
 
 07.06.2024
@@ -365,10 +365,15 @@ Die Professionalität ist hier aus mehreren Gründen gegeben:
 Die Klasse `MockHasher` stellt eine Mock-Implementation des `Hasher`-Interfaces dar.
 Sie wurde erstellt damit Komponenten getestet werden können, obwohl eine vollständige Implementation des
 Hasher-Interfaces noch nicht existierte.
-
-# TODO Wo Einsatz?
+So wird der MockHasher in den Unit-Tests von `MainClientService` genutzt und ermöglicht es dessen Funktionalität ohne
+konkrete Hasher-Implementation zu testen.
 
 ### Beispiel 2
+
+![UML-Diagramm](https://www.plantuml.com/plantuml/svg/SoWkIImgAStDuKhEIImkLl3DJyvspKlEJqaj2aujAijCJbMevb800cs5aig2L0NNegBy8YweI4egIA669fIRcWVbrd9nPUQLf1Qb9GArKyCqBAxIrQsnGpERoo4rBmNe5G00)
+
+Die Klasse `MockEncoderService` stellt eine Mock-Implementation des `EncoderService`-Interfaces dar.
+Es gilt dieselbe Begründung wie im obigen Beispiel.
 
 # Kapitel 6 - Domain Driven Design
 
@@ -461,5 +466,12 @@ ein `FileTreeNode` einen Dateibaum abbilden soll.
 `FileTreeNode::File`s und ``FileTreeNode::SymbolicLink`` stellen hierbei Blätter dar, `NodeType::Directory` stellen
 Kompositen dar.
 
-### Entwurfsmuster: [Name]
- 
+### Entwurfsmuster: [Builder]
+
+![UML-Diagramm](https://www.plantuml.com/plantuml/svg/JOz12m8X48Nl_WgFHNZg4X7BieVes3rY6TpPLb9t6HMYwB-dOQOddVVUzvpMUI0VZ6RAUgGH9F8Jk0c9lnYFPyCNmX49hSJLEeyas5xEPW72Vehklq08lipU5VICTb3sbjY579OXkajuL1QqUk8toT06muzAOnNfDDnncrIfmRdypgBWaGPxtisFmoNihatovLs4QEeViEgUjDB3Ik4inA-kZUPWz0S0)
+
+Der `PendinigHash` stell ein Builder-Pattern dar, da er erst über die `update()`-Methode Daten aggregiert und dann mit
+der `finalize()`-Methode zu einem `FileHash` konvertiert.
+Das Builder-Pattern ist hier besonders sinnvoll, da so auch große Dateien verarbeitet werden können, ohne dass diese
+vollständig in den Arbeitsspeicher geladen werden müssen.
+Ein FileHash welcher zum Erstellen einen vollständigen Byte-Array benötigt ist somit nicht geeignet.
