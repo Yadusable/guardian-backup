@@ -481,13 +481,31 @@ async fn test_receive_request() {
 
 ### Negatives Beispiel
 
-# fettes TODO Karl
+Als Negativ-Beispiel dient `client_service::client_service::test_functionality()`.
+Die Professionalität hier aus mehreren Gründen nicht gegeben:
+
+1. Der Name ist sehr unspezifisch, was überhaupt getestet wird
+2. Das, was getestet wird, wird in einem anderen bereits Test mitgetestet.
+
+```rust
+    #[tokio::test]
+async fn test_functionality() {
+    let mut client_service = MainClientService::new_mock();
+    client_service
+        .create_backup(
+            "/a/b".parse().unwrap(),
+            MONTH,
+            Duration::Infinite,
+            "Testname".into(),
+        )
+        .await
+        .unwrap();
+}
+```
 
 ## Code Coverage
 
 > Code Coverage im Projekt analysieren und begründen
-
-# todo abnahme
 
 ![Screenshot-Code_coverage](coverage.png)
 Die Code coverage unterscheidet sich etwas über die verschiedenen Komponenten des Projektes hinweg.
@@ -506,8 +524,8 @@ Hier wurde viele Funktionen modelliert, die später nicht umgesetzt wurden.
 
 Während einzelne Komponenten wie die `TCP-Connection` umfangreicher getestet wurden, ist dies nicht für das gesamte
 Projekt erfolgt.
-Dies ist auf die Anforderung von 10 Unit-Tests zurückzuführen.
-Diese reichen bei weitem nicht aus um das Projekt mit einem Umfang von über 3.000 Zeilen ausreichend zu testen.
+Die erstellten Unit-Tests reichen bei Weitem nicht aus, um das Projekt mit einem Umfang von über 3.000 Zeilen
+ausreichend zu testen.
 Es ist daher wahrscheinlich, dass ungewolltes Verhalten in den weniger getesteten Komponenten vorliegt.
 Eine höhere Abdeckung wäre hier wünschenswert gewesen.
 
